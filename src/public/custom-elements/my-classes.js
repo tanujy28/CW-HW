@@ -1,3 +1,45 @@
+const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function parseDays(s) {
+  return String(s).toLowerCase().split(/[^a-z]+/).map(x => DAYS.indexOf(x.slice(0, 3))).filter(i => i >= 0);
+}
+function nextTime(sess, now) {
+  const days = parseDays(sess.days);
+  const [h, mi] = String(sess.startTime).split(':').map(Number);
+  if (!days.length || isNaN(h)) return null;
+  for (let k = 0; k <= 7; k++) {
+    const d = new Date(now); d.setDate(now.getDate() + k);
+    if (!days.includes(d.getDay())) continue;
+    d.setHours(h, mi || 0, 0, 0);
+    const end = new Date(d.getTime() + (sess.duration || 60) * 60000);
+    if (end > now) return { start: d, end };
+  }
+  return null;
+}
+function clock(d) {
+  let h = d.getHours(); const m = String(d.getMinutes()).padStart(2, '0');
+  const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+  return h + ':' + m + ' ' + ap;
+}
+function whenText(t, now) {
+  const day0 = new Date(now); day0.setHours(0, 0, 0, 0);
+  const diff = Math.round((new Date(t.start).setHours(0, 0, 0, 0) - day0) / 86400000);
+  const day = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : DAY_NAMES[t.start.getDay()];
+  return day + ', ' + clock(t.start);
+}
+function status(t, now) {
+  if (!t) return { live: false, label: '' };
+  const ms = t.start - now;
+  if (now >= t.start) return { live: true, label: 'Live now' };
+  if (ms <= 10 * 60000) return { live: true, label: 'Starting soon' };
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return { live: false, label: 'In ' + mins + ' min' };
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return { live: false, label: 'In ' + hrs + ' hr' };
+  return { live: false, label: '' };
+}
+
 customElements.define('cwhw-classes', class extends HTMLElement {
   static get observedAttributes() { return ['data', 'room']; }
 
@@ -23,14 +65,24 @@ cwhw-classes .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;
 cwhw-classes .inner{max-width:1080px;margin:0 auto}
 cwhw-classes .head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:24px}
 cwhw-classes h2{margin:0;font-size:38px}
+cwhw-classes .next{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;background:#2F3E4E;color:#fff;border-radius:16px;padding:20px 24px;margin-bottom:24px}
+cwhw-classes .next small{display:block;font-size:13px;letter-spacing:1px;color:#FFC124;font-weight:700;margin-bottom:4px}
+cwhw-classes .next b{display:block;font-size:22px}
+cwhw-classes .next span{font-size:15px;color:#dce4ec}
 cwhw-classes .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
 cwhw-classes .card{background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:6px 6px 0 #F2B8A2;padding:24px;box-sizing:border-box}
-cwhw-classes .card h3{margin:0 0 14px;font-size:22px}
-cwhw-classes .room{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:10px 12px;margin-bottom:10px}
-cwhw-classes .room span{font-weight:700;font-size:16px}
-cwhw-classes .btn,cwhw-classes .btn2{display:inline-block;border:2px solid #1d1d1d;border-radius:8px;padding:9px 16px;font:700 15px 'Space Grotesk',sans-serif;cursor:pointer;text-decoration:none;color:#1d1d1d}
+cwhw-classes .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 14px}
+cwhw-classes .card h3{margin:0;font-size:22px}
+cwhw-classes .manage{font-size:14px;font-weight:700;color:#2F3E4E}
+cwhw-classes .lbl{font-size:13px;font-weight:700;letter-spacing:1px;margin:16px 0 8px;color:#4a5866}
+cwhw-classes .row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:10px 12px;margin-bottom:10px}
+cwhw-classes .row b{display:block;font-size:16px}
+cwhw-classes .row span{font-size:14px;color:#4a5866}
+cwhw-classes .chip{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:#e9eef2;color:#2F3E4E;white-space:nowrap}
+cwhw-classes .btn,cwhw-classes .btn2{display:inline-block;border:2px solid #1d1d1d;border-radius:8px;padding:9px 16px;font:700 15px 'Space Grotesk',sans-serif;cursor:pointer;text-decoration:none;color:#1d1d1d;white-space:nowrap}
 cwhw-classes .btn{background:#FFC124;box-shadow:3px 3px 0 #2F3E4E}
 cwhw-classes .btn2{background:#fff}
+cwhw-classes .btn2:disabled{opacity:.7;cursor:default}
 cwhw-classes .muted{font-size:15px;color:#4a5866;margin:0}
 cwhw-classes .empty{text-align:center;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;padding:40px 24px}
 cwhw-classes .empty h3{margin:0 0 8px;font-size:26px}
@@ -39,7 +91,7 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
 </style>
 <div class="band"><div class="inner">
  <div class="head"><h2>My Classes</h2><a class="btn2" href="/join">+ Join another class</a></div>
- <div id="list"><p class="muted">Loading your classes…</p></div>
+ <div id="list"><p class="muted">Loading…</p></div>
 </div></div>`;
     this.band = this.querySelector('.band');
     this.fit = () => {
@@ -49,7 +101,23 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     };
     this.fit(); setTimeout(this.fit, 500); setTimeout(this.fit, 1500);
     window.addEventListener('resize', this.fit);
+    this.tick = setInterval(() => { if (this.data && !this.overlay) this.renderList(); }, 30000);
     if (this.data) this.renderList();
+  }
+
+  el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  joinButton(roomId, name, enabled, label) {
+    const b = this.el('button', enabled ? 'btn' : 'btn2', label || 'Join');
+    b.type = 'button';
+    if (enabled && roomId) b.onclick = () => this.openRoom({ id: roomId, name });
+    else b.disabled = true;
+    return b;
   }
 
   renderList() {
@@ -57,42 +125,81 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     list.innerHTML = '';
     const d = this.data || {};
     const classes = d.classes || [];
-    if (d.error) { list.innerHTML = '<p class="muted"></p>'; list.firstChild.textContent = d.error; return; }
+    const now = new Date();
+    if (d.error) { list.append(this.el('p', 'muted', d.error)); return; }
     if (!classes.length) {
-      list.innerHTML = '<div class="empty"><h3>You haven\u2019t joined a class yet</h3><p>Ask your teacher for a class code.</p><a class="btn" href="/join">Join your class</a></div>';
+      list.innerHTML = '<div class="empty"><h3>You haven’t joined a class yet</h3><p>Ask your teacher for a class code.</p><a class="btn" href="/join">Join your class</a></div>';
       return;
     }
-    const grid = document.createElement('div');
-    grid.className = 'grid';
+
+    // Up next, across all classes
+    let best = null;
+    classes.forEach(c => (c.sessions || []).forEach(s => {
+      const t = nextTime(s, now);
+      if (t && (!best || t.start < best.t.start)) best = { s, t, c };
+    }));
+    if (best) {
+      const st = status(best.t, now);
+      const box = this.el('div', 'next');
+      const info = this.el('div');
+      info.append(this.el('small', null, st.live ? st.label.toUpperCase() : 'UP NEXT'));
+      info.append(this.el('b', null, best.s.title));
+      info.append(this.el('span', null, best.c.name + ' · ' + whenText(best.t, now) + (best.s.host ? ' · with ' + best.s.host : '')));
+      box.append(info, this.joinButton(best.s.roomId, best.s.title, st.live, st.live ? 'Join now' : (st.label || 'Not started')));
+      list.append(box);
+    }
+
+    const grid = this.el('div', 'grid');
     classes.forEach(c => {
-      const card = document.createElement('div');
-      card.className = 'card';
-      const h = document.createElement('h3'); h.textContent = c.name; card.append(h);
-      if (!c.rooms.length) {
-        const p = document.createElement('p'); p.className = 'muted';
-        p.textContent = 'Your teacher hasn\u2019t set up study rooms yet.';
-        card.append(p);
+      const card = this.el('div', 'card');
+      const ch = this.el('div', 'ch');
+      ch.append(this.el('h3', null, c.name));
+      if (c.teacher) {
+        const a = this.el('a', 'manage', 'Manage →');
+        a.href = '/manage-class';
+        ch.append(a);
       }
+      card.append(ch);
+
+      // Sessions
+      const sessions = (c.sessions || []).map(s => ({ s, t: nextTime(s, now) })).filter(x => x.t)
+        .sort((a, b) => a.t.start - b.t.start);
+      if (sessions.length) {
+        card.append(this.el('div', 'lbl', 'STUDY SESSIONS'));
+        sessions.forEach(({ s, t }) => {
+          const st = status(t, now);
+          const row = this.el('div', 'row');
+          const info = this.el('div');
+          info.append(this.el('b', null, s.title));
+          info.append(this.el('span', null, s.days + ' · ' + clock(t.start) + ' · ' + (s.duration || 60) + ' min'));
+          const right = st.live ? this.joinButton(s.roomId, s.title, true, 'Join') : this.el('span', 'chip', st.label || whenText(t, now));
+          row.append(info, right);
+          card.append(row);
+        });
+      }
+
+      // Rooms (always open)
+      card.append(this.el('div', 'lbl', 'STUDY ROOMS'));
+      if (!c.rooms.length) card.append(this.el('p', 'muted', 'Your teacher hasn’t set up study rooms yet.'));
       c.rooms.forEach(r => {
-        const row = document.createElement('div'); row.className = 'room';
-        const s = document.createElement('span'); s.textContent = r.name;
-        const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = 'Join';
-        b.onclick = () => this.openRoom(r);
-        row.append(s, b); card.append(row);
+        const row = this.el('div', 'row');
+        row.append(this.el('b', null, r.name), this.joinButton(r.id, r.name, true, 'Join'));
+        card.append(row);
       });
+
       grid.append(card);
     });
     list.append(grid);
   }
 
   openRoom(r) {
-    this.closeRoom();
+    this.closeRoom(true);
     const o = document.createElement('div');
     Object.assign(o.style, { position: 'fixed', inset: '0', zIndex: '2147483000', background: '#00594c' });
     const bar = document.createElement('div');
     Object.assign(bar.style, { height: '48px', display: 'flex', alignItems: 'center', gap: '14px', padding: '0 12px', background: '#0b3d3a', color: '#fff', font: "700 16px 'Space Grotesk',sans-serif" });
     const back = document.createElement('button');
-    back.textContent = '\u2190 Back to My Classes';
+    back.textContent = '← Back to My Classes';
     Object.assign(back.style, { background: '#FFC124', color: '#000', border: '0', borderRadius: '6px', padding: '7px 12px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit' });
     back.onclick = () => this.closeRoom();
     const t = document.createElement('span'); t.textContent = r.name;
@@ -103,7 +210,7 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     document.body.append(o);
     document.body.style.overflow = 'hidden';
     this.overlay = o;
-    this.msg('Connecting to study room\u2026');
+    this.msg('Connecting to study room…');
     this.dispatchEvent(new CustomEvent('open-room', { detail: { id: r.id } }));
   }
 
@@ -117,7 +224,7 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
 
   showRoom(d) {
     if (d.error || !d.url) { this.msg(d.error || 'Could not open this room.'); return; }
-    this.msg('Connecting to study room\u2026');
+    this.msg('Connecting to study room…');
     const f = document.createElement('iframe');
     f.src = d.url;
     f.allow = 'camera; microphone; fullscreen; display-capture; autoplay';
@@ -125,13 +232,16 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     this.stage.append(f);
   }
 
-  closeRoom() {
+  closeRoom(silent) {
     if (this.overlay) { this.overlay.remove(); this.overlay = null; }
     document.body.style.overflow = '';
+    if (!silent && this.data) this.renderList();
   }
 
   disconnectedCallback() {
-    this.closeRoom();
+    clearInterval(this.tick);
+    if (this.overlay) { this.overlay.remove(); this.overlay = null; }
+    document.body.style.overflow = '';
     window.removeEventListener('resize', this.fit);
   }
 });

@@ -15,7 +15,8 @@ customElements.define('cwhw-join', class extends HTMLElement {
       this.msg.innerHTML = '';
       this.msg.append(d.message + ' ');
       const a = document.createElement('a');
-      a.href = '/my-classes'; a.textContent = 'Go to My Classes →';
+      if (d.role === 'teacher') { a.href = '/manage-class'; a.textContent = 'Go to Manage Class →'; }
+      else { a.href = '/my-classes'; a.textContent = 'Go to My Classes →'; }
       a.style.color = '#2F3E4E'; a.style.fontWeight = '700';
       this.msg.append(a);
     }

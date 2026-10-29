@@ -13,7 +13,7 @@ $w.onReady(async function () {
     try {
       const res = await joinSpace(e.detail.code);
       const spaces = await mySpaces();
-      send({ ok: res.ok, joined: res.ok, message: res.message, classes: spaces.map(s => s.spaceName) });
+      send({ ok: res.ok, joined: res.ok, role: res.role, message: res.message, classes: spaces.map(s => s.spaceName) });
     } catch (err) {
       send({ ok: false, message: 'Something went wrong. Please try again.' });
     }

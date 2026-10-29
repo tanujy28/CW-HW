@@ -1,13 +1,15 @@
-import { mySpaces, myRooms, getClassRoom } from 'backend/spaces.web';
+import { mySpaces, myRooms, mySessions, getClassRoom } from 'backend/spaces.web';
 
 $w.onReady(async function () {
   const box = $w('#classesBox');
 
   try {
-    const [spaces, rooms] = await Promise.all([mySpaces(), myRooms()]);
+    const [spaces, rooms, sessions] = await Promise.all([mySpaces(), myRooms(), mySessions()]);
     const classes = spaces.map(s => ({
       name: s.spaceName,
-      rooms: rooms.filter(r => r.spaceId === s.spaceId).map(r => ({ id: r.id, name: r.name }))
+      teacher: s.role === 'teacher',
+      rooms: rooms.filter(r => r.spaceId === s.spaceId).map(r => ({ id: r.id, name: r.name })),
+      sessions: sessions.filter(x => x.spaceId === s.spaceId)
     }));
     box.setAttribute('data', JSON.stringify({ classes }));
   } catch (e) {
@@ -19,7 +21,7 @@ $w.onReady(async function () {
       const url = await getClassRoom(e.detail.id);
       box.setAttribute('room', JSON.stringify({ url, t: Date.now() }));
     } catch (err) {
-      box.setAttribute('room', JSON.stringify({ error: 'You can\u2019t open this room.', t: Date.now() }));
+      box.setAttribute('room', JSON.stringify({ error: 'You can’t open this room.', t: Date.now() }));
     }
   });
 });
