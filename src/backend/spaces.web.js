@@ -5,7 +5,7 @@ import { currentMember } from 'wix-members-backend';
 const opts = { suppressAuth: true };
 const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const TZ_OFFSET_MIN = 330; // session times are in Indian time (IST)
-const EARLY_MIN = 12;      // students can enter a little before the start
+const EARLY_MIN = 15;      // members can join a little before the start
 
 // Is any of these sessions running right now (or about to start)?
 function anyLive(sessions) {
@@ -30,24 +30,24 @@ async function memberships(memberId) {
   return r.items.map(m => ({ spaceId: m.spaceId, spaceName: m.spaceName, role: m.role }));
 }
 
-// Classes the logged-in member belongs to
+// Programmes the logged-in member belongs to
 export const mySpaces = webMethod(Permissions.SiteMember, async () => {
   const m = await currentMember.getMember();
   if (!m) return [];
   return memberships(m._id);
 });
 
-// Join a class with a student code, or as a teacher with a teacher code
+// Join a programme with a member code, or as a mentor with a mentor code
 export const joinSpace = webMethod(Permissions.SiteMember, async (code) => {
   const m = await currentMember.getMember();
   if (!m) return { ok: false, message: 'Please log in first.' };
 
   const clean = String(code || '').trim().toUpperCase();
-  if (clean.length < 4 || clean.length > 30) return { ok: false, message: 'Please enter a valid class code.' };
+  if (clean.length < 4 || clean.length > 30) return { ok: false, message: 'Please enter a valid programme code.' };
 
   const base = wixData.query('Spaces').eq('active', true);
   const s = await base.eq('inviteCode', clean).or(base.eq('teacherCode', clean)).limit(1).find(opts);
-  if (!s.items.length) return { ok: false, message: "That code didn't work. Please check it with your teacher." };
+  if (!s.items.length) return { ok: false, message: "That code didn't work. Please check it with your mentor." };
   const space = s.items[0];
   const role = String(space.teacherCode || '').trim().toUpperCase() === clean ? 'teacher' : 'student';
 
@@ -58,7 +58,7 @@ export const joinSpace = webMethod(Permissions.SiteMember, async (code) => {
     const cur = existing.items[0];
     if (role === 'teacher' && cur.role !== 'teacher') {
       await wixData.update('SpaceMembers', { ...cur, role: 'teacher' }, opts);
-      return { ok: true, role, message: "You're now a teacher of " + space.title + '.', spaceName: space.title };
+      return { ok: true, role, message: "You're now a mentor of " + space.title + '.', spaceName: space.title };
     }
     return { ok: true, role: cur.role, message: "You're already in " + space.title + '.', spaceName: space.title };
   }
@@ -69,23 +69,12 @@ export const joinSpace = webMethod(Permissions.SiteMember, async (code) => {
 
   return {
     ok: true, role,
-    message: role === 'teacher' ? "You've joined " + space.title + ' as a teacher!' : "You've joined " + space.title + '!',
+    message: role === 'teacher' ? "You've joined " + space.title + ' as a mentor!' : "You've joined " + space.title + '!',
     spaceName: space.title
   };
 });
 
-// Rooms of all the classes the member is in (no links sent)
-export const myRooms = webMethod(Permissions.SiteMember, async () => {
-  const m = await currentMember.getMember();
-  if (!m) return [];
-  const mem = await memberships(m._id);
-  const ids = mem.map(x => x.spaceId);
-  if (!ids.length) return [];
-  const r = await wixData.query('ClassRooms').hasSome('space', ids).limit(100).find(opts);
-  return r.items.map(i => ({ id: i._id, name: i.title, spaceId: i.space, sessionsOnly: !!i.sessionsOnly }));
-});
-
-// Timetable for all of the member's classes
+// Timetable for all of the member's programmes (links are not sent here)
 export const mySessions = webMethod(Permissions.SiteMember, async () => {
   const m = await currentMember.getMember();
   if (!m) return [];
@@ -95,58 +84,38 @@ export const mySessions = webMethod(Permissions.SiteMember, async () => {
   try {
     const r = await wixData.query('ClassSessions').hasSome('space', ids).limit(200).find(opts);
     return r.items.map(i => ({
-      title: i.title, spaceId: i.space, roomId: i.room,
-      days: i.days || '', startTime: i.startTime || '', duration: i.duration || 60, host: i.host || ''
+      id: i._id, title: i.title, spaceId: i.space,
+      days: i.days || '', startTime: i.startTime || '', duration: i.duration || 60, host: i.host || '',
+      hasLink: !!i.meetLink
     }));
   } catch (e) {
     return []; // ClassSessions not set up yet
   }
 });
 
-// Give a room link only to members of that room's class
-export const getClassRoom = webMethod(Permissions.SiteMember, async (roomId) => {
+// Give the session's Meet link only to members, only around session time, and note attendance
+export const joinSession = webMethod(Permissions.SiteMember, async (sessionId) => {
   const m = await currentMember.getMember();
-  if (!m) throw new Error('login');
-  const room = await wixData.get('ClassRooms', roomId, opts);
-  if (!room || !room.roomUrl) throw new Error('not found');
-  const ok = await wixData.query('SpaceMembers')
-    .eq('memberId', m._id).eq('spaceId', room.space).limit(1).find(opts);
-  if (!ok.items.length) throw new Error('not a member');
-  if (room.sessionsOnly && ok.items[0].role !== 'teacher') {
-    let sessions = [];
-    try {
-      const r = await wixData.query('ClassSessions').hasSome('space', [room.space]).limit(200).find(opts);
-      sessions = r.items.filter(x => x.room === room._id);
-    } catch (e) {}
-    if (!anyLive(sessions)) throw new Error('closed');
-  }
-  // Log the visit for the class usage report
-  let visitId = null;
-  try {
-    const full = await currentMember.getMember({ fieldsets: ['FULL'] });
-    const p = (full && full.profile) || {};
-    const c = (full && full.contactDetails) || {};
-    const now = new Date();
-    const v = await wixData.insert('ClassVisits', {
-      title: room.title || 'Room',
-      space: room.space, room: room._id, memberId: m._id,
-      author: String(p.nickname || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Student').slice(0, 40),
-      teacher: ok.items[0].role === 'teacher',
-      start: now, lastSeen: now, minutes: 0
-    }, opts);
-    visitId = v._id;
-  } catch (e) { /* ClassVisits not set up yet */ }
-  return { url: room.roomUrl + '?audio=off&video=off&logo=off', visitId };
-});
+  if (!m) throw new Error('Please log in first.');
+  const s = await wixData.get('ClassSessions', String(sessionId), opts).catch(() => null);
+  if (!s || !s.meetLink) throw new Error('This session has no link yet. Please ask your mentor.');
+  const mem = await wixData.query('SpaceMembers').eq('memberId', m._id).eq('spaceId', s.space).limit(1).find(opts);
+  if (!mem.items.length) throw new Error("You're not in this programme.");
+  const isMentor = mem.items[0].role === 'teacher';
+  if (!isMentor && !anyLive([s])) throw new Error('This session opens 15 minutes before it starts.');
 
-// Keep a room visit's length up to date while the student is in the room
-export const pingVisit = webMethod(Permissions.SiteMember, async (visitId) => {
-  const m = await currentMember.getMember();
-  if (!m || !visitId) return false;
-  const v = await wixData.get('ClassVisits', String(visitId), opts).catch(() => null);
-  if (!v || v.memberId !== m._id) return false;
-  const now = new Date();
-  const minutes = Math.min(300, Math.round((now - new Date(v.start)) / 60000));
-  await wixData.update('ClassVisits', { ...v, lastSeen: now, minutes }, opts);
-  return true;
+  if (!isMentor) {
+    try {
+      const full = await currentMember.getMember({ fieldsets: ['FULL'] });
+      const p = (full && full.profile) || {};
+      const c = (full && full.contactDetails) || {};
+      await wixData.insert('ClassVisits', {
+        title: s.title || 'Session',
+        space: s.space, session: s._id, memberId: m._id,
+        author: String(p.nickname || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Member').slice(0, 40),
+        teacher: false, start: new Date()
+      }, opts);
+    } catch (e) { /* attendance is best effort */ }
+  }
+  return s.meetLink;
 });

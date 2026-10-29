@@ -22,7 +22,7 @@ async function me() {
 // The member must belong to this class; returns their role
 async function requireMember(memberId, spaceId) {
   const r = await wixData.query('SpaceMembers').eq('memberId', memberId).eq('spaceId', spaceId).limit(1).find(opts);
-  if (!r.items.length) throw new Error("You're not in this class.");
+  if (!r.items.length) throw new Error("You're not in this programme.");
   return r.items[0].role || 'student';
 }
 
@@ -146,7 +146,7 @@ export const setAnswered = webMethod(Permissions.SiteMember, async (spaceId, dou
   spaceId = String(spaceId);
   const role = await requireMember(user.id, spaceId);
   const d = await doubtIn(spaceId, doubtId);
-  if (d.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who asked or the teacher can do this.');
+  if (d.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who asked or the mentor can do this.');
   await wixData.update('ClassDoubts', { ...d, answered: !!value }, opts);
   return board(user, spaceId);
 });
@@ -156,7 +156,7 @@ export const deleteDoubt = webMethod(Permissions.SiteMember, async (spaceId, dou
   spaceId = String(spaceId);
   const role = await requireMember(user.id, spaceId);
   const d = await doubtIn(spaceId, doubtId);
-  if (d.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who asked or the teacher can delete this.');
+  if (d.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who asked or the mentor can delete this.');
   const r = await wixData.query('ClassReplies').hasSome('doubt', [d._id]).limit(1000).find(opts);
   if (r.items.length) await wixData.bulkRemove('ClassReplies', r.items.map(x => x._id), opts);
   await wixData.remove('ClassDoubts', d._id, opts);
@@ -169,7 +169,7 @@ export const deleteReply = webMethod(Permissions.SiteMember, async (spaceId, rep
   const role = await requireMember(user.id, spaceId);
   const r = await wixData.get('ClassReplies', String(replyId), opts).catch(() => null);
   if (!r || r.space !== spaceId) throw new Error('Reply not found.');
-  if (r.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who wrote it or the teacher can delete this.');
+  if (r.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who wrote it or the mentor can delete this.');
   await wixData.remove('ClassReplies', r._id, opts);
   return board(user, spaceId);
 });

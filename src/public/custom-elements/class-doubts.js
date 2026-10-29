@@ -76,9 +76,9 @@ cwhw-doubts .back{font-size:14px;font-weight:700;color:#2F3E4E}
 @media (max-width:600px){cwhw-doubts .band{padding:20px 12px}cwhw-doubts h2{font-size:30px}}
 </style>
 <div class="band"><div class="inner">
- <a class="back" href="/my-classes">← My Classes</a>
- <div class="head"><h2>Class Doubts</h2><div id="picker"></div></div>
- <p class="sub" id="sub">Ask your teacher and classmates. Only your class can see this.</p>
+ <a class="back" href="/my-classes">← My Programmes</a>
+ <div class="head"><h2>Programme Doubts</h2><div id="picker"></div></div>
+ <p class="sub" id="sub">Ask your mentor and the group. Only members can see this.</p>
  <div class="msg" id="msg" role="status"></div>
  <div id="body"><p class="muted">Loading…</p></div>
 </div></div>`;
@@ -151,7 +151,7 @@ cwhw-doubts .back{font-size:14px;font-weight:700;color:#2F3E4E}
     picker.innerHTML = '';
     if (classes.length > 1) {
       const sel = this.el('select');
-      sel.setAttribute('aria-label', 'Choose a class');
+      sel.setAttribute('aria-label', 'Choose a programme');
       classes.forEach(c => {
         const o = this.el('option', null, c.name); o.value = c.spaceId;
         if (this.board && c.spaceId === this.board.spaceId) o.selected = true;
@@ -165,17 +165,17 @@ cwhw-doubts .back{font-size:14px;font-weight:700;color:#2F3E4E}
     body.innerHTML = '';
     if (!classes.length) {
       const e = this.el('div', 'card empty');
-      e.append(this.el('h3', null, 'Join a class to ask doubts'));
-      e.append(this.el('p', 'muted', 'Ask your teacher for a class code.'));
-      const a = this.el('a', 'btn', 'Join your class'); a.href = '/join'; a.style.marginTop = '14px';
+      e.append(this.el('h3', null, 'Join a programme to ask doubts'));
+      e.append(this.el('p', 'muted', 'Ask your mentor for a programme code.'));
+      const a = this.el('a', 'btn', 'Join a programme'); a.href = '/join'; a.style.marginTop = '14px';
       e.append(a);
       body.append(e);
       return;
     }
     const b = this.board;
     if (!b) { if (!d.error) body.append(this.el('p', 'muted', 'Loading…')); return; }
-    this.querySelector('#sub').textContent = b.name + ' · Ask your teacher and classmates. Only your class can see this.';
-    if (!b.ready) { body.append(this.el('p', 'muted', 'The doubts board for this class isn’t set up yet.')); return; }
+    this.querySelector('#sub').textContent = b.name + ' · Ask your mentor and the group. Only members can see this.';
+    if (!b.ready) { body.append(this.el('p', 'muted', 'The doubts board for this programme isn’t set up yet.')); return; }
 
     // Ask box
     const ask = this.el('div', 'card');
@@ -218,7 +218,7 @@ cwhw-doubts .back{font-size:14px;font-weight:700;color:#2F3E4E}
       const c = this.el('div', 'q');
       const meta = this.el('div', 'meta');
       meta.append(this.el('b', null, q.mine ? 'You' : q.author));
-      if (q.byTeacher) meta.append(this.el('span', 'tag t', 'Teacher'));
+      if (q.byTeacher) meta.append(this.el('span', 'tag t', 'Mentor'));
       meta.append(this.el('span', null, ago(q.at)));
       if (q.subject) meta.append(this.el('span', 'tag', q.subject));
       meta.append(this.el('span', q.answered ? 'tag ok' : 'tag open', q.answered ? 'Answered' : 'Unanswered'));
@@ -247,7 +247,7 @@ cwhw-doubts .back{font-size:14px;font-weight:700;color:#2F3E4E}
           const rp = this.el('div', 'rep' + (r.teacher ? ' t' : ''));
           const rm = this.el('div', 'meta');
           rm.append(this.el('b', null, r.author));
-          if (r.teacher) rm.append(this.el('span', 'tag t', 'Teacher'));
+          if (r.teacher) rm.append(this.el('span', 'tag t', 'Mentor'));
           rm.append(this.el('span', null, ago(r.at)));
           if (r.canDelete) rm.append(this.button('Delete', 'lnk del', () => {
             if (confirm('Delete this reply?')) this.send('delete-reply', { replyId: r.id });

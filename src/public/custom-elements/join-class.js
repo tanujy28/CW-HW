@@ -15,15 +15,15 @@ customElements.define('cwhw-join', class extends HTMLElement {
       this.msg.innerHTML = '';
       this.msg.append(d.message + ' ');
       const a = document.createElement('a');
-      if (d.role === 'teacher') { a.href = '/manage-class'; a.textContent = 'Go to Manage Class →'; }
-      else { a.href = '/my-classes'; a.textContent = 'Go to My Classes →'; }
+      if (d.role === 'teacher') { a.href = '/manage-class'; a.textContent = 'Go to Manage Programme →'; }
+      else { a.href = '/my-classes'; a.textContent = 'Go to My Programmes →'; }
       a.style.color = '#2F3E4E'; a.style.fontWeight = '700';
       this.msg.append(a);
     }
     if (d.classes && d.classes.length) {
       this.list.innerHTML = '';
       const h = document.createElement('div');
-      h.textContent = 'Your classes';
+      h.textContent = 'Your programmes';
       h.className = 'lh';
       this.list.append(h);
       d.classes.forEach(c => {
@@ -75,25 +75,25 @@ cwhw-join .item span{font-size:15px;color:#dce4ec}
 <div class="band">
  <div class="grid">
   <div class="card">
-   <h2>Join your class</h2>
-   <p>Enter the code your teacher gave you.</p>
-   <label for="cwhw-code">Class code</label>
+   <h2>Join a programme</h2>
+   <p>Enter the code your mentor gave you.</p>
+   <label for="cwhw-code">Programme code</label>
    <div class="row">
     <input id="cwhw-code" placeholder="e.g. SUN-7KQ2-M9X" autocomplete="off" maxlength="30">
     <button type="button" id="cwhw-joinbtn">Join</button>
    </div>
    <div class="msg" id="cwhw-msg" role="status"></div>
    <div id="cwhw-list"></div>
-  <div class="foot">No code? Ask your teacher, or study with anyone in our <a href="/general-6">Group Study Rooms →</a></div>
+  <div class="foot">No code? Ask your mentor, or study with anyone in our <a href="/general-6">Group Study Rooms →</a></div>
   </div>
   <div class="side">
-   <h3>What you get with your class</h3>
+   <h3>What you get in a programme</h3>
    <div class="item"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="13" height="14" rx="2"></rect><path d="M16 10l5-3v10l-5-3z"></path></svg></div>
-    <div><b>Private study rooms</b><span>Only your classmates can join.</span></div></div>
+    <div><b>Live sessions</b><span>Join your mentor’s sessions right from CWHW.</span></div></div>
    <div class="item"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg></div>
-    <div><b>Fixed study sessions</b><span>Study together at set times every week.</span></div></div>
+    <div><b>A fixed weekly schedule</b><span>Know exactly when the next session is.</span></div></div>
    <div class="item"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg></div>
-    <div><b>Doubts answered</b><span>Ask your teacher and classmates anytime.</span></div></div>
+    <div><b>Doubts answered</b><span>Ask your mentor and the group anytime.</span></div></div>
    <div class="item"><div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2M9 2h6"></path></svg></div>
     <div><b>Your Room</b><span>Focus timer, themes and music for solo study.</span></div></div>
   </div>
@@ -120,7 +120,7 @@ cwhw-join .item span{font-size:15px;color:#dce4ec}
 
     const join = () => {
       const code = this.input.value.trim();
-      if (!code) { this.msg.textContent = 'Please enter your class code.'; this.msg.style.color = '#b3261e'; return; }
+      if (!code) { this.msg.textContent = 'Please enter your programme code.'; this.msg.style.color = '#b3261e'; return; }
       this.btn.disabled = true;
       this.btn.textContent = 'Checking…';
       this.msg.textContent = '';

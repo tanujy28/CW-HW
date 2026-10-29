@@ -1,7 +1,7 @@
 const DAY_KEYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const LENGTHS = [30, 45, 60, 90, 120];
 
-function clock(hhmm) {
+function hmClock(hhmm) {
   const [h, m] = String(hhmm).split(':').map(Number);
   if (isNaN(h)) return hhmm;
   return ((h % 12) || 12) + ':' + String(m || 0).padStart(2, '0') + ' ' + (h >= 12 ? 'pm' : 'am');
@@ -92,7 +92,7 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
 @media (max-width:600px){cwhw-manage .band{padding:20px 12px}cwhw-manage h2{font-size:30px}cwhw-manage .two{grid-template-columns:1fr}cwhw-manage .row{flex-wrap:wrap}}
 </style>
 <div class="band"><div class="inner">
- <div class="head"><h2>Manage Class</h2><div id="picker"></div></div>
+ <div class="head"><h2>Manage Programme</h2><div id="picker"></div></div>
  <div class="msg" id="msg" role="status"></div>
  <div id="body"><p class="muted">Loading…</p></div>
 </div></div>`;
@@ -143,7 +143,7 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     const classes = d.classes || [];
     if (classes.length > 1) {
       const sel = this.el('select');
-      sel.setAttribute('aria-label', 'Choose a class');
+      sel.setAttribute('aria-label', 'Choose a programme');
       classes.forEach(c => {
         const o = this.el('option', null, c.name); o.value = c.spaceId;
         if (this.details && c.spaceId === this.details.spaceId) o.selected = true;
@@ -157,9 +157,9 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     body.innerHTML = '';
     if (!classes.length) {
       const e = this.el('div', 'empty');
-      e.append(this.el('h3', null, 'You’re not a teacher of any class yet'));
-      e.append(this.el('p', null, 'Enter the teacher code CWHW gave you on the Join Your Class page.'));
-      const a = this.el('a', 'btn', 'Enter teacher code'); a.href = '/join';
+      e.append(this.el('h3', null, 'You’re not a mentor of any programme yet'));
+      e.append(this.el('p', null, 'Enter the mentor code CWHW gave you on the Join a Programme page.'));
+      const a = this.el('a', 'btn', 'Enter mentor code'); a.href = '/join';
       e.append(a);
       body.append(e);
       return;
@@ -174,15 +174,15 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     ov.append(this.el('h3', null, det.name));
     const stats = this.el('div', 'stats');
     const s1 = this.el('div', 'stat');
-    s1.append(this.el('b', null, String(det.studentCount)), this.el('span', null, det.studentCount === 1 ? 'student joined' : 'students joined'));
+    s1.append(this.el('b', null, String(det.studentCount)), this.el('span', null, det.studentCount === 1 ? 'member joined' : 'members joined'));
     stats.append(s1);
     if (det.inviteCode) {
       const s2 = this.el('div', 'stat');
       const code = this.el('div', 'code', det.inviteCode);
-      s2.append(this.el('span', null, 'Student code (share with your class)'), code);
+      s2.append(this.el('span', null, 'Member code (share with your group)'), code);
       stats.append(s2);
       const copy = this.button('Copy invite', 'btn2', () => {
-        const text = 'Join our class on CWHW: go to cwhw.in/join and enter the code ' + det.inviteCode;
+        const text = 'Join my programme on CWHW: go to cwhw.in/join and enter the code ' + det.inviteCode;
         try { navigator.clipboard.writeText(text); copy.textContent = 'Copied!'; } catch (e) { copy.textContent = 'Copy failed'; }
         setTimeout(() => { copy.textContent = 'Copy invite'; }, 2000);
       });
@@ -192,59 +192,19 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     ov.append(stats);
     grid.append(ov);
 
-    // Rooms
-    const rc = this.el('div', 'card');
-    rc.append(this.el('h3', null, 'Study rooms'));
-    rc.append(this.el('p', 'muted', 'Private video rooms only your students can join. Choose if each room is always open or opens only during its sessions.'));
-    if (!det.rooms.length) rc.append(this.el('p', 'muted', 'No rooms yet. Create your first one below.'));
-    det.rooms.forEach(r => {
-      const row = this.el('div', 'row');
-      const info = this.el('div');
-      info.append(this.el('b', null, r.name));
-      const mode = this.el('select', 'mode');
-      mode.setAttribute('aria-label', 'When students can enter ' + r.name);
-      [['open', 'Always open'], ['sessions', 'Only during sessions']].forEach(([v, t]) => {
-        const o = this.el('option', null, t); o.value = v;
-        if ((v === 'sessions') === !!r.sessionsOnly) o.selected = true;
-        mode.append(o);
-      });
-      mode.disabled = !!this.busy;
-      mode.onchange = () => this.send('room-mode', { roomId: r.id, sessionsOnly: mode.value === 'sessions' });
-      info.append(mode);
-      row.append(info);
-      row.append(this.button('Delete', 'lnk del', () => {
-        if (!confirm('Delete "' + r.name + '"? Sessions using this room will also be deleted.')) return;
-        this.send('delete-room', { roomId: r.id });
-      }));
-      rc.append(row);
-    });
-    const add = this.el('div', 'inline');
-    const name = this.el('input');
-    name.placeholder = 'e.g. Math room'; name.maxLength = 40;
-    name.setAttribute('aria-label', 'New room name');
-    const create = this.button('Create room', 'btn', () => {
-      if (!name.value.trim()) { name.focus(); return; }
-      this.send('create-room', { name: name.value.trim() });
-    });
-    name.onkeydown = (e) => { if (e.key === 'Enter') create.click(); };
-    add.append(name, create);
-    rc.append(add);
-    grid.append(rc);
-
     // Sessions
-    const sc = this.el('div', 'card');
-    sc.append(this.el('h3', null, 'Study sessions'));
+    const sc = this.el('div', 'card wide');
+    sc.append(this.el('h3', null, 'Sessions'));
     if (!det.sessionsReady) {
-      sc.append(this.el('p', 'muted', 'The timetable isn’t set up yet. Please contact CWHW.'));
+      sc.append(this.el('p', 'muted', 'Sessions aren’t set up yet. Please contact CWHW.'));
     } else {
-      sc.append(this.el('p', 'muted', 'Weekly sessions show up on your students’ My Classes page.'));
-      const roomName = id => (det.rooms.find(r => r.id === id) || {}).name || 'No room';
-      if (!det.sessions.length && !this.editing) sc.append(this.el('p', 'muted', 'No sessions yet.'));
+      sc.append(this.el('p', 'muted', 'Weekly sessions show up on your members’ My Programmes page. Paste a Google Meet or YouTube Live link for each one. Members only see the link when the session is about to start.'));
+            if (!det.sessions.length && !this.editing) sc.append(this.el('p', 'muted', 'No sessions yet.'));
       det.sessions.forEach(s => {
         const row = this.el('div', 'row');
         const info = this.el('div');
         info.append(this.el('b', null, s.title));
-        info.append(this.el('span', null, s.days + ' · ' + clock(s.startTime) + ' · ' + s.duration + ' min · ' + roomName(s.roomId)));
+        info.append(this.el('span', null, s.days + ' · ' + hmClock(s.startTime) + ' · ' + s.duration + ' min' + (s.meetLink ? '' : ' · no link yet')));
         const acts = this.el('div', 'acts');
         acts.append(this.button('Edit', 'lnk', () => { this.editing = { ...s }; this.render(); }));
         acts.append(this.button('Delete', 'lnk del', () => {
@@ -256,12 +216,12 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
       });
 
       if (this.editing) sc.append(this.sessionForm(det));
-      else if (det.rooms.length) {
+      else {
         sc.append(this.button('+ Add session', 'btn', () => {
-          this.editing = { title: '', roomId: det.rooms[0].id, days: '', startTime: '18:00', duration: 60, host: '' };
+          this.editing = { title: '', meetLink: '', days: '', startTime: '18:00', duration: 60, host: '' };
           this.render();
         }));
-      } else sc.append(this.el('p', 'muted', 'Create a study room first, then add sessions.'));
+      }
     }
     grid.append(sc);
     grid.append(this.usageCard());
@@ -272,7 +232,7 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     const u = this.usage;
     const card = this.el('div', 'card wide');
     const top = this.el('div', 'uhead');
-    top.append(this.el('h3', null, 'Usage report'));
+    top.append(this.el('h3', null, 'Attendance report'));
     const range = this.el('select');
     range.setAttribute('aria-label', 'Report period');
     [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days']].forEach(([v, t]) => {
@@ -286,65 +246,47 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     card.append(top);
 
     if (!u) { card.append(this.el('p', 'muted', 'Loading report…')); return card; }
-    if (!u.ready) { card.append(this.el('p', 'muted', 'Usage tracking isn’t set up yet. Please contact CWHW.')); return card; }
+    if (!u.ready) { card.append(this.el('p', 'muted', 'Attendance tracking isn’t set up yet. Please contact CWHW.')); return card; }
 
-    const hrs = m => m >= 60 ? (Math.round(m / 6) / 10) + ' hr' : m + ' min';
     const stats = this.el('div', 'tiles');
     const tile = (big, small) => { const t = this.el('div', 'tile'); t.append(this.el('b', null, big), this.el('span', null, small)); stats.append(t); };
-    tile(u.activeStudents + ' / ' + u.studentCount, 'students studied');
-    tile(hrs(u.totalMinutes), 'total study time');
-    tile(u.activeStudents ? hrs(Math.round(u.totalMinutes / u.activeStudents)) : '0 min', 'per active student');
+    tile(u.activeStudents + ' / ' + u.studentCount, 'members attended');
+    tile(String(u.sessionsHeld), 'sessions held');
+    tile(String(u.avgAttendance), 'average attendance');
     tile(u.doubtsAnswered + ' / ' + u.doubtsAsked, 'doubts answered');
     card.append(stats);
 
-    // Study time per day
-    card.append(this.el('div', 'lbl', 'STUDY TIME PER DAY'));
-    const max = Math.max(1, ...u.daily.map(x => x.minutes));
-    const chart = this.el('div', 'chart');
-    const step = u.daily.length > 31 ? 7 : u.daily.length > 7 ? 5 : 1;
-    u.daily.forEach((x, i) => {
-      const col = this.el('div', 'col');
-      col.title = x.label + ': ' + hrs(x.minutes);
-      const bar = this.el('div', 'bar');
-      bar.style.height = Math.max(x.minutes ? 3 : 0, Math.round(x.minutes / max * 100)) + '%';
-      col.append(bar, this.el('span', null, (i % step === 0 || i === u.daily.length - 1) ? x.label : ''));
-      chart.append(col);
-    });
-    card.append(chart);
-
-    // Sessions
     if (u.sessions.length) {
-      card.append(this.el('div', 'lbl', 'SESSION ATTENDANCE'));
+      card.append(this.el('div', 'lbl', 'SESSIONS'));
       u.sessions.forEach(s => {
         const row = this.el('div', 'row');
         const info = this.el('div');
         info.append(this.el('b', null, s.title));
-        info.append(this.el('span', null, s.held ? 'Held ' + s.held + (s.held === 1 ? ' time' : ' times') + ' · last time ' + s.last + ' of ' + u.studentCount : 'No sessions in this period yet'));
-        row.append(info, this.el('span', 'chip', s.held ? 'Avg ' + s.avg + ' students' : '—'));
+        info.append(this.el('span', null, s.held ? 'Held ' + s.held + (s.held === 1 ? ' time' : ' times') + ' · last time ' + s.last + ' of ' + u.studentCount : 'Not held in this period yet'));
+        row.append(info, this.el('span', 'chip', s.held ? 'Avg ' + s.avg : '—'));
         card.append(row);
       });
     }
 
-    // Students
-    card.append(this.el('div', 'lbl', 'STUDENTS'));
+    card.append(this.el('div', 'lbl', 'MEMBERS'));
     if (!u.students.length) {
-      card.append(this.el('p', 'muted', 'No students have joined yet. Share your student code.'));
+      card.append(this.el('p', 'muted', 'No one has joined yet. Share your member code.'));
       return card;
     }
     const when = d => {
       if (!d) return 'Not yet';
-      const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
-      return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days + ' days ago';
+      const n = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+      return n <= 0 ? 'Today' : n === 1 ? 'Yesterday' : n + ' days ago';
     };
     const wrap = this.el('div', 'tablewrap');
     const table = this.el('table');
     const head = this.el('tr');
-    ['Student', 'Study time', 'Room visits', 'Doubts', 'Last studied'].forEach(h => head.append(this.el('th', null, h)));
+    ['Member', 'Sessions attended', 'Doubts', 'Last attended'].forEach(h => head.append(this.el('th', null, h)));
     table.append(head);
     u.students.forEach(r => {
       const tr = this.el('tr');
-      if (!r.visits) tr.className = 'idle';
-      [r.name, r.minutes ? hrs(r.minutes) : '—', String(r.visits), String(r.doubts), when(r.lastSeen)].forEach(v => tr.append(this.el('td', null, v)));
+      if (!r.attended) tr.className = 'idle';
+      [r.name, String(r.attended), String(r.doubts), when(r.lastSeen)].forEach(v => tr.append(this.el('td', null, v)));
       table.append(tr);
     });
     wrap.append(table);
@@ -352,20 +294,20 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
 
     const dl = this.button('Download CSV', 'btn2', () => {
       const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-      const lines = [['Student', 'Study minutes', 'Room visits', 'Doubts asked', 'Last studied', 'Joined'].map(q).join(',')];
-      u.students.forEach(r => lines.push([r.name, r.minutes, r.visits, r.doubts,
+      const lines = [['Member', 'Sessions attended', 'Doubts asked', 'Last attended', 'Joined'].map(q).join(',')];
+      u.students.forEach(r => lines.push([r.name, r.attended, r.doubts,
         r.lastSeen ? new Date(r.lastSeen).toLocaleDateString() : '', r.joined ? new Date(r.joined).toLocaleDateString() : ''].map(q).join(',')));
       const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = ((this.details && this.details.name) || 'class').replace(/[^a-z0-9]+/gi, '-') + '-usage-' + u.days + 'd.csv';
+      a.download = ((this.details && this.details.name) || 'programme').replace(/[^a-z0-9]+/gi, '-') + '-attendance-' + u.days + 'd.csv';
       document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });
     dl.disabled = false;
     dl.style.marginTop = '12px';
     card.append(dl);
-    card.append(this.el('p', 'note', 'Study time counts minutes spent in your class rooms. It updates every 2 minutes while students are in a room.'));
+    card.append(this.el('p', 'note', 'A member counts as attending when they click Join for a session on CWHW.'));
     return card;
   }
 
@@ -374,12 +316,12 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     const f = this.el('div', 'form');
     const field = (label, input) => { const w = this.el('div'); const l = this.el('label', null, label); w.append(l, input); return w; };
 
-    const title = this.el('input'); title.value = s.title; title.maxLength = 60; title.placeholder = 'e.g. Class 10 Math practice';
+    const title = this.el('input'); title.value = s.title; title.maxLength = 60; title.placeholder = 'e.g. Board prep: Algebra';
     f.append(field('Session name', title));
 
-    const room = this.el('select');
-    det.rooms.forEach(r => { const o = this.el('option', null, r.name); o.value = r.id; if (r.id === s.roomId) o.selected = true; room.append(o); });
-    f.append(field('Study room', room));
+    const link = this.el('input'); link.type = 'url'; link.value = s.meetLink || ''; link.maxLength = 300;
+    link.placeholder = 'https://meet.google.com/abc-defg-hij';
+    f.append(field('Google Meet or YouTube Live link', link));
 
     const daysWrap = this.el('div', 'days');
     const chosen = String(s.days).split(/[^A-Za-z]+/).map(x => x.slice(0, 3));
@@ -406,7 +348,7 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
 
     const acts = this.el('div', 'inline');
     acts.append(this.button(s.id ? 'Save changes' : 'Add session', 'btn', () => {
-      this.editing = { ...s, title: title.value, roomId: room.value, days: boxes.filter(b => b.checked).map(b => b.value).join(', '),
+      this.editing = { ...s, title: title.value, meetLink: link.value, days: boxes.filter(b => b.checked).map(b => b.value).join(', '),
         startTime: time.value, duration: Number(len.value), host: host.value };
       this.send('save-session', { session: { ...this.editing, days: boxes.filter(b => b.checked).map(b => b.value) } });
     }));

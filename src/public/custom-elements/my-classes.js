@@ -32,7 +32,7 @@ function status(t, now) {
   if (!t) return { live: false, label: '' };
   const ms = t.start - now;
   if (now >= t.start) return { live: true, label: 'Live now' };
-  if (ms <= 10 * 60000) return { live: true, label: 'Starting soon' };
+  if (ms <= 15 * 60000) return { live: true, label: 'Starting soon' };
   const mins = Math.round(ms / 60000);
   if (mins < 60) return { live: false, label: 'In ' + mins + ' min' };
   const hrs = Math.round(mins / 60);
@@ -41,13 +41,13 @@ function status(t, now) {
 }
 
 customElements.define('cwhw-classes', class extends HTMLElement {
-  static get observedAttributes() { return ['data', 'room']; }
+  static get observedAttributes() { return ['data', 'link']; }
 
   attributeChangedCallback(name, oldV, val) {
     if (!val) return;
     let d; try { d = JSON.parse(val); } catch (e) { return; }
     if (name === 'data') { this.data = d; if (this.ready) this.renderList(); }
-    if (name === 'room' && this.overlay) this.showRoom(d);
+    if (name === 'link') this.gotLink(d);
   }
 
   connectedCallback() {
@@ -89,9 +89,12 @@ cwhw-classes .empty{text-align:center;background:#FDF5EF;border:3px solid #2F3E4
 cwhw-classes .empty h3{margin:0 0 8px;font-size:26px}
 cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
 @media (max-width:600px){cwhw-classes .band{padding:20px 12px}cwhw-classes h2{font-size:30px}}
+cwhw-classes .links{display:flex;gap:14px;flex-shrink:0}
+cwhw-classes .msg{min-height:22px;font-size:15px;font-weight:700;margin-bottom:12px;color:#b3261e}
 </style>
 <div class="band"><div class="inner">
- <div class="head"><h2>My Classes</h2><a class="btn2" href="/join">+ Join another class</a></div>
+ <div class="head"><h2>My Programmes</h2><a class="btn2" href="/join">+ Join a programme</a></div>
+ <div class="msg" id="msg" role="status"></div>
  <div id="list"><p class="muted">Loading…</p></div>
 </div></div>`;
     this.band = this.querySelector('.band');
@@ -102,8 +105,13 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     };
     this.fit(); setTimeout(this.fit, 500); setTimeout(this.fit, 1500);
     window.addEventListener('resize', this.fit);
-    this.tick = setInterval(() => { if (this.data && !this.overlay) this.renderList(); }, 30000);
+    this.tick = setInterval(() => { if (this.data) this.renderList(); }, 30000);
     if (this.data) this.renderList();
+  }
+
+  disconnectedCallback() {
+    clearInterval(this.tick);
+    window.removeEventListener('resize', this.fit);
   }
 
   el(tag, cls, text) {
@@ -113,12 +121,39 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     return e;
   }
 
-  joinButton(roomId, name, enabled, label) {
+  joinButton(session, enabled, label) {
     const b = this.el('button', enabled ? 'btn' : 'btn2', label || 'Join');
     b.type = 'button';
-    if (enabled && roomId) b.onclick = () => this.openRoom({ id: roomId, name });
+    if (enabled && session.id) b.onclick = () => this.join(session, b);
     else b.disabled = true;
     return b;
+  }
+
+  // Open a tab straight away (so browsers don't block it), then send it to the Meet link
+  join(session, btn) {
+    const msg = this.querySelector('#msg');
+    msg.textContent = '';
+    let win = null;
+    try { win = window.open('', '_blank'); } catch (e) { win = null; }
+    if (win) {
+      try { win.document.title = 'Joining…'; win.document.body.innerHTML = '<p style="font:16px sans-serif;padding:24px">Opening your session…</p>'; } catch (e) {}
+    }
+    this.pending = { win, btn, label: btn.textContent };
+    btn.disabled = true; btn.textContent = 'Opening…';
+    this.dispatchEvent(new CustomEvent('join-session', { detail: { id: session.id } }));
+  }
+
+  gotLink(d) {
+    const p = this.pending || {};
+    this.pending = null;
+    if (p.btn) { p.btn.disabled = false; p.btn.textContent = p.label || 'Join'; }
+    if (d.url) {
+      if (p.win && !p.win.closed) p.win.location.href = d.url;
+      else window.location.href = d.url;
+    } else {
+      try { if (p.win && !p.win.closed) p.win.close(); } catch (e) {}
+      this.querySelector('#msg').textContent = d.error || 'Could not open this session.';
+    }
   }
 
   renderList() {
@@ -129,11 +164,11 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     const now = new Date();
     if (d.error) { list.append(this.el('p', 'muted', d.error)); return; }
     if (!classes.length) {
-      list.innerHTML = '<div class="empty"><h3>You haven’t joined a class yet</h3><p>Ask your teacher for a class code.</p><a class="btn" href="/join">Join your class</a></div>';
+      list.innerHTML = '<div class="empty"><h3>You haven’t joined a programme yet</h3><p>Got a code from a mentor? Enter it to join.</p><a class="btn" href="/join">Join a programme</a></div>';
       return;
     }
 
-    // Up next, across all classes
+    // Up next, across all programmes
     let best = null;
     classes.forEach(c => (c.sessions || []).forEach(s => {
       const t = nextTime(s, now);
@@ -141,12 +176,13 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     }));
     if (best) {
       const st = status(best.t, now);
+      const live = st.live || best.c.teacher;
       const box = this.el('div', 'next');
       const info = this.el('div');
       info.append(this.el('small', null, st.live ? st.label.toUpperCase() : 'UP NEXT'));
       info.append(this.el('b', null, best.s.title));
       info.append(this.el('span', null, best.c.name + ' · ' + whenText(best.t, now) + (best.s.host ? ' · with ' + best.s.host : '')));
-      box.append(info, this.joinButton(best.s.roomId, best.s.title, st.live, st.live ? 'Join now' : (st.label || 'Not started')));
+      box.append(info, this.joinButton(best.s, live && best.s.hasLink, st.live ? 'Join now' : (best.c.teacher ? 'Open link' : (st.label || 'Not started'))));
       list.append(box);
     }
 
@@ -167,119 +203,26 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
       ch.append(links);
       card.append(ch);
 
-      // Sessions
       const sessions = (c.sessions || []).map(s => ({ s, t: nextTime(s, now) })).filter(x => x.t)
         .sort((a, b) => a.t.start - b.t.start);
-      if (sessions.length) {
-        card.append(this.el('div', 'lbl', 'STUDY SESSIONS'));
-        sessions.forEach(({ s, t }) => {
-          const st = status(t, now);
-          const row = this.el('div', 'row');
-          const info = this.el('div');
-          info.append(this.el('b', null, s.title));
-          info.append(this.el('span', null, s.days + ' · ' + clock(t.start) + ' · ' + (s.duration || 60) + ' min'));
-          const right = st.live ? this.joinButton(s.roomId, s.title, true, 'Join') : this.el('span', 'chip', st.label || whenText(t, now));
-          row.append(info, right);
-          card.append(row);
-        });
-      }
-
-      // Rooms (always open)
-      card.append(this.el('div', 'lbl', 'STUDY ROOMS'));
-      if (!c.rooms.length) card.append(this.el('p', 'muted', 'Your teacher hasn’t set up study rooms yet.'));
-      c.rooms.forEach(r => {
+      card.append(this.el('div', 'lbl', 'SESSIONS'));
+      if (!sessions.length) card.append(this.el('p', 'muted', 'No sessions scheduled yet.'));
+      sessions.forEach(({ s, t }) => {
+        const st = status(t, now);
         const row = this.el('div', 'row');
-        if (!r.sessionsOnly || c.teacher) {
-          row.append(this.el('b', null, r.name), this.joinButton(r.id, r.name, true, 'Join'));
-        } else {
-          // Locked room: open only while one of its sessions is on
-          const next = (c.sessions || []).filter(s => s.roomId === r.id).map(s => nextTime(s, now)).filter(Boolean)
-            .sort((a, b) => a.start - b.start)[0];
-          const live = next && status(next, now).live;
-          const info = this.el('div');
-          info.append(this.el('b', null, r.name));
-          info.append(this.el('span', null, 'Opens during study sessions'));
-          row.append(info, live ? this.joinButton(r.id, r.name, true, 'Join')
-            : this.el('span', 'chip', next ? 'Opens ' + whenText(next, now) : 'No sessions yet'));
-        }
+        const info = this.el('div');
+        info.append(this.el('b', null, s.title));
+        info.append(this.el('span', null, s.days + ' · ' + clock(t.start) + ' · ' + (s.duration || 60) + ' min' + (s.host ? ' · ' + s.host : '')));
+        let right;
+        if (!s.hasLink) right = this.el('span', 'chip', 'Link coming soon');
+        else if (st.live) right = this.joinButton(s, true, 'Join');
+        else if (c.teacher) right = this.joinButton(s, true, 'Open link');
+        else right = this.el('span', 'chip', st.label || whenText(t, now));
+        row.append(info, right);
         card.append(row);
       });
-
       grid.append(card);
     });
     list.append(grid);
-  }
-
-  openRoom(r) {
-    this.closeRoom(true);
-    const o = document.createElement('div');
-    Object.assign(o.style, { position: 'fixed', inset: '0', zIndex: '2147483000', background: '#00594c' });
-    const bar = document.createElement('div');
-    Object.assign(bar.style, { height: '48px', display: 'flex', alignItems: 'center', gap: '14px', padding: '0 12px', background: '#0b3d3a', color: '#fff', font: "700 16px 'Space Grotesk',sans-serif" });
-    const back = document.createElement('button');
-    back.textContent = '← Back to My Classes';
-    Object.assign(back.style, { background: '#FFC124', color: '#000', border: '0', borderRadius: '6px', padding: '7px 12px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'inherit' });
-    back.onclick = () => this.closeRoom();
-    const t = document.createElement('span'); t.textContent = r.name;
-    bar.append(back, t);
-    this.stage = document.createElement('div');
-    Object.assign(this.stage.style, { position: 'relative', width: '100%', height: 'calc(100% - 48px)' });
-    o.append(bar, this.stage);
-    document.body.append(o);
-    document.body.style.overflow = 'hidden';
-    this.overlay = o;
-    this.msg('Connecting to study room…');
-    this.dispatchEvent(new CustomEvent('open-room', { detail: { id: r.id } }));
-  }
-
-  msg(text) {
-    this.stage.innerHTML = '';
-    const m = document.createElement('div');
-    m.textContent = text;
-    Object.assign(m.style, { position: 'absolute', inset: '0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', font: "700 20px 'Space Grotesk',sans-serif", textAlign: 'center', padding: '0 20px' });
-    this.stage.append(m);
-  }
-
-  showRoom(d) {
-    if (d.error || !d.url) { this.msg(d.error || 'Could not open this room.'); return; }
-    this.msg('Connecting to study room…');
-    const f = document.createElement('iframe');
-    f.src = d.url;
-    f.allow = 'camera; microphone; fullscreen; display-capture; autoplay';
-    Object.assign(f.style, { position: 'relative', zIndex: '1', width: '100%', height: '100%', border: '0' });
-    this.stage.append(f);
-    // Tell the server every 2 minutes that the student is still in the room
-    this.stopPing();
-    if (d.visitId) {
-      this.visitId = d.visitId;
-      this.ping = setInterval(() => this.sendPing(), 120000);
-      this.onHide = () => { if (document.visibilityState === 'hidden') this.sendPing(); };
-      document.addEventListener('visibilitychange', this.onHide);
-    }
-  }
-
-  sendPing() {
-    if (this.visitId) this.dispatchEvent(new CustomEvent('ping', { detail: { visitId: this.visitId } }));
-  }
-
-  stopPing() {
-    if (this.ping) { this.sendPing(); clearInterval(this.ping); this.ping = null; }
-    if (this.onHide) { document.removeEventListener('visibilitychange', this.onHide); this.onHide = null; }
-    this.visitId = null;
-  }
-
-  closeRoom(silent) {
-    this.stopPing();
-    if (this.overlay) { this.overlay.remove(); this.overlay = null; }
-    document.body.style.overflow = '';
-    if (!silent && this.data) this.renderList();
-  }
-
-  disconnectedCallback() {
-    clearInterval(this.tick);
-    this.stopPing();
-    if (this.overlay) { this.overlay.remove(); this.overlay = null; }
-    document.body.style.overflow = '';
-    window.removeEventListener('resize', this.fit);
   }
 });
