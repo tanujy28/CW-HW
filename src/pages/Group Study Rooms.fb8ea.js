@@ -1,4 +1,4 @@
-import { getRoomUrl } from 'backend/rooms.web';
+import { roomInfo } from 'backend/rooms.web';
 import { currentMember } from 'wix-members-frontend';
 
 $w.onReady(function () {
@@ -7,14 +7,14 @@ $w.onReady(function () {
     const key = e.detail.key;
     const member = await currentMember.getMember();
     if (!member) {
-      rooms.setAttribute('room-url', JSON.stringify({ key, error: 'login' }));
+      rooms.setAttribute('room-info', JSON.stringify({ key, error: 'login' }));
       return;
     }
     try {
-      const url = await getRoomUrl(key);
-      rooms.setAttribute('room-url', JSON.stringify({ key, url }));
+      const info = await roomInfo(key);
+      rooms.setAttribute('room-info', JSON.stringify({ key, ...info }));
     } catch (err) {
-      rooms.setAttribute('room-url', JSON.stringify({ key, error: 'failed' }));
+      rooms.setAttribute('room-info', JSON.stringify({ key, error: 'failed' }));
     }
   });
 });
