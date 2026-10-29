@@ -208,7 +208,7 @@ export const saveTalk = webMethod(Permissions.SiteMember, async (t) => {
     speakerInfo: clean(t.speakerInfo, 120),
     description: String(t.description || '').trim().slice(0, 1500),
     watchLink: cleanLink(t.watchLink, true),
-    recordingLink: cleanLink(t.recordingLink, false),
+    recordingLink: cleanLink(t.recordingLink, false) || null, // URL field: leave empty rather than ''
     published: t.published !== false
   };
 
