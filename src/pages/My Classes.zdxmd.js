@@ -6,6 +6,7 @@ $w.onReady(async function () {
   try {
     const [spaces, rooms, sessions] = await Promise.all([mySpaces(), myRooms(), mySessions()]);
     const classes = spaces.map(s => ({
+      spaceId: s.spaceId,
       name: s.spaceName,
       teacher: s.role === 'teacher',
       rooms: rooms.filter(r => r.spaceId === s.spaceId).map(r => ({ id: r.id, name: r.name, sessionsOnly: r.sessionsOnly })),

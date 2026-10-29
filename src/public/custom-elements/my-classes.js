@@ -73,6 +73,7 @@ cwhw-classes .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300
 cwhw-classes .card{background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:6px 6px 0 #F2B8A2;padding:24px;box-sizing:border-box}
 cwhw-classes .ch{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 14px}
 cwhw-classes .card h3{margin:0;font-size:22px}
+cwhw-classes .links{display:flex;gap:14px;flex-shrink:0}
 cwhw-classes .manage{font-size:14px;font-weight:700;color:#2F3E4E}
 cwhw-classes .lbl{font-size:13px;font-weight:700;letter-spacing:1px;margin:16px 0 8px;color:#4a5866}
 cwhw-classes .row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:10px 12px;margin-bottom:10px}
@@ -154,11 +155,16 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
       const card = this.el('div', 'card');
       const ch = this.el('div', 'ch');
       ch.append(this.el('h3', null, c.name));
+      const links = this.el('div', 'links');
+      const dl = this.el('a', 'manage', 'Doubts →');
+      dl.href = '/class-doubts' + (c.spaceId ? '?class=' + encodeURIComponent(c.spaceId) : '');
+      links.append(dl);
       if (c.teacher) {
         const a = this.el('a', 'manage', 'Manage →');
         a.href = '/manage-class';
-        ch.append(a);
+        links.append(a);
       }
+      ch.append(links);
       card.append(ch);
 
       // Sessions
