@@ -192,9 +192,6 @@ cwhw-classes .msg{min-height:22px;font-size:15px;font-weight:700;margin-bottom:1
       const ch = this.el('div', 'ch');
       ch.append(this.el('h3', null, c.name));
       const links = this.el('div', 'links');
-      const dl = this.el('a', 'manage', 'Doubts →');
-      dl.href = '/class-doubts' + (c.spaceId ? '?class=' + encodeURIComponent(c.spaceId) : '');
-      links.append(dl);
       if (c.teacher) {
         const a = this.el('a', 'manage', 'Manage →');
         a.href = '/manage-class';

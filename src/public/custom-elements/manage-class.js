@@ -253,7 +253,6 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     tile(u.activeStudents + ' / ' + u.studentCount, 'members attended');
     tile(String(u.sessionsHeld), 'sessions held');
     tile(String(u.avgAttendance), 'average attendance');
-    tile(u.doubtsAnswered + ' / ' + u.doubtsAsked, 'doubts answered');
     card.append(stats);
 
     if (u.sessions.length) {
@@ -281,12 +280,12 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
     const wrap = this.el('div', 'tablewrap');
     const table = this.el('table');
     const head = this.el('tr');
-    ['Member', 'Sessions attended', 'Doubts', 'Last attended'].forEach(h => head.append(this.el('th', null, h)));
+    ['Member', 'Sessions attended', 'Last attended'].forEach(h => head.append(this.el('th', null, h)));
     table.append(head);
     u.students.forEach(r => {
       const tr = this.el('tr');
       if (!r.attended) tr.className = 'idle';
-      [r.name, String(r.attended), String(r.doubts), when(r.lastSeen)].forEach(v => tr.append(this.el('td', null, v)));
+      [r.name, String(r.attended), when(r.lastSeen)].forEach(v => tr.append(this.el('td', null, v)));
       table.append(tr);
     });
     wrap.append(table);
@@ -294,8 +293,8 @@ cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
 
     const dl = this.button('Download CSV', 'btn2', () => {
       const q = v => '"' + String(v).replace(/"/g, '""') + '"';
-      const lines = [['Member', 'Sessions attended', 'Doubts asked', 'Last attended', 'Joined'].map(q).join(',')];
-      u.students.forEach(r => lines.push([r.name, r.attended, r.doubts,
+      const lines = [['Member', 'Sessions attended', 'Last attended', 'Joined'].map(q).join(',')];
+      u.students.forEach(r => lines.push([r.name, r.attended,
         r.lastSeen ? new Date(r.lastSeen).toLocaleDateString() : '', r.joined ? new Date(r.joined).toLocaleDateString() : ''].map(q).join(',')));
       const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
       const a = document.createElement('a');
