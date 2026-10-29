@@ -8,7 +8,7 @@ $w.onReady(async function () {
     const classes = spaces.map(s => ({
       name: s.spaceName,
       teacher: s.role === 'teacher',
-      rooms: rooms.filter(r => r.spaceId === s.spaceId).map(r => ({ id: r.id, name: r.name })),
+      rooms: rooms.filter(r => r.spaceId === s.spaceId).map(r => ({ id: r.id, name: r.name, sessionsOnly: r.sessionsOnly })),
       sessions: sessions.filter(x => x.spaceId === s.spaceId)
     }));
     box.setAttribute('data', JSON.stringify({ classes }));
@@ -21,7 +21,8 @@ $w.onReady(async function () {
       const url = await getClassRoom(e.detail.id);
       box.setAttribute('room', JSON.stringify({ url, t: Date.now() }));
     } catch (err) {
-      box.setAttribute('room', JSON.stringify({ error: 'You can’t open this room.', t: Date.now() }));
+      const closed = String(err && err.message).includes('closed');
+      box.setAttribute('room', JSON.stringify({ error: closed ? 'This room opens only during its study sessions.' : 'You can’t open this room.', t: Date.now() }));
     }
   });
 });

@@ -3,6 +3,27 @@ import wixData from 'wix-data';
 import { currentMember } from 'wix-members-backend';
 
 const opts = { suppressAuth: true };
+const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const TZ_OFFSET_MIN = 330; // session times are in Indian time (IST)
+const EARLY_MIN = 12;      // students can enter a little before the start
+
+// Is any of these sessions running right now (or about to start)?
+function anyLive(sessions) {
+  const now = new Date(Date.now() + TZ_OFFSET_MIN * 60000); // read with getUTC* = IST clock
+  return sessions.some(s => {
+    const days = String(s.days || '').toLowerCase().split(/[^a-z]+/).map(x => DAYS.indexOf(x.slice(0, 3))).filter(i => i >= 0);
+    const [h, m] = String(s.startTime || '').split(':').map(Number);
+    if (!days.length || isNaN(h)) return false;
+    return [-1, 0].some(k => {
+      const d = new Date(now.getTime() + k * 86400000);
+      if (!days.includes(d.getUTCDay())) return false;
+      d.setUTCHours(h, m || 0, 0, 0);
+      const start = d.getTime() - EARLY_MIN * 60000;
+      const end = d.getTime() + (Number(s.duration) || 60) * 60000;
+      return now.getTime() >= start && now.getTime() < end;
+    });
+  });
+}
 
 async function memberships(memberId) {
   const r = await wixData.query('SpaceMembers').eq('memberId', memberId).find(opts);
@@ -61,7 +82,7 @@ export const myRooms = webMethod(Permissions.SiteMember, async () => {
   const ids = mem.map(x => x.spaceId);
   if (!ids.length) return [];
   const r = await wixData.query('ClassRooms').hasSome('space', ids).limit(100).find(opts);
-  return r.items.map(i => ({ id: i._id, name: i.title, spaceId: i.space }));
+  return r.items.map(i => ({ id: i._id, name: i.title, spaceId: i.space, sessionsOnly: !!i.sessionsOnly }));
 });
 
 // Timetable for all of the member's classes
@@ -91,5 +112,13 @@ export const getClassRoom = webMethod(Permissions.SiteMember, async (roomId) => 
   const ok = await wixData.query('SpaceMembers')
     .eq('memberId', m._id).eq('spaceId', room.space).limit(1).find(opts);
   if (!ok.items.length) throw new Error('not a member');
+  if (room.sessionsOnly && ok.items[0].role !== 'teacher') {
+    let sessions = [];
+    try {
+      const r = await wixData.query('ClassSessions').hasSome('space', [room.space]).limit(200).find(opts);
+      sessions = r.items.filter(x => x.room === room._id);
+    } catch (e) {}
+    if (!anyLive(sessions)) throw new Error('closed');
+  }
   return room.roomUrl + '?audio=off&video=off&logo=off';
 });

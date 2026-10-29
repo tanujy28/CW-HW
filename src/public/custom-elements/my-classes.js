@@ -183,7 +183,19 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
       if (!c.rooms.length) card.append(this.el('p', 'muted', 'Your teacher hasn’t set up study rooms yet.'));
       c.rooms.forEach(r => {
         const row = this.el('div', 'row');
-        row.append(this.el('b', null, r.name), this.joinButton(r.id, r.name, true, 'Join'));
+        if (!r.sessionsOnly || c.teacher) {
+          row.append(this.el('b', null, r.name), this.joinButton(r.id, r.name, true, 'Join'));
+        } else {
+          // Locked room: open only while one of its sessions is on
+          const next = (c.sessions || []).filter(s => s.roomId === r.id).map(s => nextTime(s, now)).filter(Boolean)
+            .sort((a, b) => a.start - b.start)[0];
+          const live = next && status(next, now).live;
+          const info = this.el('div');
+          info.append(this.el('b', null, r.name));
+          info.append(this.el('span', null, 'Opens during study sessions'));
+          row.append(info, live ? this.joinButton(r.id, r.name, true, 'Join')
+            : this.el('span', 'chip', next ? 'Opens ' + whenText(next, now) : 'No sessions yet'));
+        }
         card.append(row);
       });
 

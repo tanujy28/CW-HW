@@ -1,4 +1,4 @@
-import { myTeaching, classDetails, createRoom, deleteRoom, saveSession, deleteSession } from 'backend/teach.web';
+import { myTeaching, classDetails, createRoom, deleteRoom, saveSession, deleteSession, setRoomMode } from 'backend/teach.web';
 
 $w.onReady(async function () {
   const box = $w('#manageBox');
@@ -36,6 +36,8 @@ $w.onReady(async function () {
   box.on('select-class', (e) => load(e.detail.spaceId));
   box.on('create-room', (e) => run(() => createRoom(selected, e.detail.name), 'Room created.'));
   box.on('delete-room', (e) => run(() => deleteRoom(selected, e.detail.roomId), 'Room deleted.'));
+  box.on('room-mode', (e) => run(() => setRoomMode(selected, e.detail.roomId, e.detail.sessionsOnly),
+    e.detail.sessionsOnly ? 'Room now opens only during sessions.' : 'Room is now always open.'));
   box.on('save-session', (e) => run(() => saveSession(selected, e.detail.session), 'Session saved.', { saved: true }));
   box.on('delete-session', (e) => run(() => deleteSession(selected, e.detail.id), 'Session deleted.'));
 });

@@ -46,6 +46,7 @@ cwhw-manage .code{font-size:20px;font-weight:700;letter-spacing:1px;background:#
 cwhw-manage .row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:10px 12px;margin-bottom:10px}
 cwhw-manage .row b{display:block;font-size:16px}
 cwhw-manage .row span{font-size:14px;color:#4a5866}
+cwhw-manage select.mode{width:auto;margin-top:6px;padding:5px 8px;font-size:14px;border-width:1.5px}
 cwhw-manage .acts{display:flex;gap:8px;flex-shrink:0}
 cwhw-manage .btn,cwhw-manage .btn2,cwhw-manage .lnk{border:2px solid #1d1d1d;border-radius:8px;padding:9px 16px;font:700 15px 'Space Grotesk',sans-serif;cursor:pointer;color:#1d1d1d;white-space:nowrap}
 cwhw-manage .btn{background:#FFC124;box-shadow:3px 3px 0 #2F3E4E}
@@ -104,7 +105,7 @@ cwhw-manage a.btn{display:inline-block;text-decoration:none}
 
   send(type, detail) {
     this.busy = true;
-    this.querySelectorAll('button').forEach(b => { b.disabled = true; });
+    this.querySelectorAll('button, select').forEach(b => { b.disabled = true; });
     const m = this.querySelector('#msg');
     m.textContent = 'Saving…'; m.style.color = '#4a5866';
     this.dispatchEvent(new CustomEvent(type, { detail: { spaceId: this.details && this.details.spaceId, ...detail } }));
@@ -173,11 +174,23 @@ cwhw-manage a.btn{display:inline-block;text-decoration:none}
     // Rooms
     const rc = this.el('div', 'card');
     rc.append(this.el('h3', null, 'Study rooms'));
-    rc.append(this.el('p', 'muted', 'Private video rooms only your students can join.'));
+    rc.append(this.el('p', 'muted', 'Private video rooms only your students can join. Choose if each room is always open or opens only during its sessions.'));
     if (!det.rooms.length) rc.append(this.el('p', 'muted', 'No rooms yet. Create your first one below.'));
     det.rooms.forEach(r => {
       const row = this.el('div', 'row');
-      row.append(this.el('b', null, r.name));
+      const info = this.el('div');
+      info.append(this.el('b', null, r.name));
+      const mode = this.el('select', 'mode');
+      mode.setAttribute('aria-label', 'When students can enter ' + r.name);
+      [['open', 'Always open'], ['sessions', 'Only during sessions']].forEach(([v, t]) => {
+        const o = this.el('option', null, t); o.value = v;
+        if ((v === 'sessions') === !!r.sessionsOnly) o.selected = true;
+        mode.append(o);
+      });
+      mode.disabled = !!this.busy;
+      mode.onchange = () => this.send('room-mode', { roomId: r.id, sessionsOnly: mode.value === 'sessions' });
+      info.append(mode);
+      row.append(info);
       row.append(this.button('Delete', 'lnk del', () => {
         if (!confirm('Delete "' + r.name + '"? Sessions using this room will also be deleted.')) return;
         this.send('delete-room', { roomId: r.id });

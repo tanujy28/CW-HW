@@ -42,7 +42,7 @@ async function details(spaceId) {
     name: space ? space.title : '',
     inviteCode: space ? space.inviteCode || '' : '',
     studentCount: members.items.filter(x => x.role !== 'teacher').length,
-    rooms: rooms.map(r => ({ id: r._id, name: r.title })),
+    rooms: rooms.map(r => ({ id: r._id, name: r.title, sessionsOnly: !!r.sessionsOnly })),
     sessionsReady: sessions !== null,
     sessions: (sessions || []).map(s => ({
       id: s._id, title: s.title || '', roomId: s.room || '', days: s.days || '',
@@ -115,6 +115,16 @@ export const deleteRoom = webMethod(Permissions.SiteMember, async (spaceId, room
   if (ids.length) await wixData.bulkRemove('ClassSessions', ids, opts);
 
   await wixData.remove('ClassRooms', room._id, opts);
+  return details(spaceId);
+});
+
+// Choose whether a room is always open or only open during its sessions
+export const setRoomMode = webMethod(Permissions.SiteMember, async (spaceId, roomId, sessionsOnly) => {
+  await requireTeacher(spaceId);
+  spaceId = String(spaceId);
+  const room = await wixData.get('ClassRooms', String(roomId), opts);
+  if (!room || room.space !== spaceId) throw new Error('Room not found.');
+  await wixData.update('ClassRooms', { ...room, sessionsOnly: !!sessionsOnly }, opts);
   return details(spaceId);
 });
 
