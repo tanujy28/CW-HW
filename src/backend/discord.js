@@ -23,7 +23,7 @@ const ROOMS_PAGE = SITE + '/general-6';
 const REDIRECT_URI = SITE + '/_functions/discordCallback';
 const API = 'https://discord.com/api/v10';
 const opts = { suppressAuth: true };
-const STATE_TTL_MS = 15 * 60000;
+const STATE_TTL_MS = 2 * 3600000;
 
 // Focus blocks follow Indian time: mics off :00–:50, break :50–:00
 export const FOCUS_MIN = 50;
@@ -89,8 +89,7 @@ async function readState(state) {
   const want = Buffer.from(await sign(payload));
   const got = Buffer.from(parts[3]);
   if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) return null;
-  if (Number(parts[2]) < Date.now()) return null;
-  return { memberId: parts[0], room: parts[1] };
+  return { memberId: parts[0], room: parts[1], expired: Number(parts[2]) < Date.now() };
 }
 
 export function roomLink(room) {
@@ -107,13 +106,16 @@ export async function linkFor(memberId) {
 
 // Handles Discord's redirect back to CWHW; returns where to send the browser next
 export async function finishJoin(query) {
-  const fail = (room, why) => {
+  const fail = (room, why, code = 'failed') => {
     console.error('Discord join failed', why);
-    return ROOMS_PAGE + '?' + (room ? 'room=' + room + '&' : '') + 'discord=failed';
+    if (!Object.prototype.hasOwnProperty.call(ROOM_CHANNELS, room)) room = '';
+    return ROOMS_PAGE + '?' + (room ? 'room=' + room + '&' : '') + 'discord=' + code;
   };
   const st = await readState(query.state);
-  if (!st) return fail('', 'bad or expired state');
-  if (!query.code) return fail(st.room, 'cancelled: ' + (query.error || 'no code'));
+  // the room is only used to reopen the right panel, so it's fine to read it from an unverified state
+  if (!st) return fail(String(query.state || '').split('.')[1] || '', 'bad state signature');
+  if (st.expired) return fail(st.room, 'expired state', 'expired');
+  if (!query.code) return fail(st.room, 'cancelled: ' + (query.error || 'no code'), 'cancelled');
 
   try {
     const tokenRes = await fetch(API + '/oauth2/token', {

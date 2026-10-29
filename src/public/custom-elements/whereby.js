@@ -63,7 +63,7 @@ customElements.define('cwhw-rooms', class extends HTMLElement {
     if (key === this.current) return;
     this.current = key;
     this.info = null;
-    this.failed = params.get('discord') === 'failed';
+    this.failed = params.get('discord');
     clearInterval(this.retry);
     clearInterval(this.tick);
     this.innerHTML = '';
@@ -141,7 +141,10 @@ cwhw-rooms .err{color:#b3261e;font-weight:700}
     card.append(this.el('p', null, 'Rooms are on Discord. Every hour there is a ' + focusMin + '-minute focus block with mics off, then a '
       + (60 - focusMin) + '-minute break where you can talk. Text chat stays open.'));
 
-    if (this.failed) card.append(this.el('p', 'err', "Joining didn't finish. Please try again."));
+    if (this.failed) {
+      card.append(this.el('p', 'err', this.failed === 'expired' ? 'That sign-in link expired. Please click Join with Discord again.'
+        : this.failed === 'cancelled' ? 'Discord sign-in was cancelled.' : "Joining didn't finish. Please try again."));
+    }
     if (!d.ready) { card.append(this.el('p', 'err', "This room isn't open yet. Please try another room.")); return; }
 
     if (d.linked) {
