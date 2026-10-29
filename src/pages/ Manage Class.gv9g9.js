@@ -1,21 +1,38 @@
-import { myTeaching, classDetails, createRoom, deleteRoom, saveSession, deleteSession, setRoomMode } from 'backend/teach.web';
+import { myTeaching, classDetails, createRoom, deleteRoom, saveSession, deleteSession, setRoomMode, usageReport } from 'backend/teach.web';
 
 $w.onReady(async function () {
   const box = $w('#manageBox');
   let classes = [];
   let selected = null;
   let last = null;
+  let usage = null;
+  let usageDays = 7;
 
   const errText = (e) => (e && e.message ? String(e.message).replace(/^Error:\s*/, '') : 'Something went wrong. Please try again.');
-  const send = (extra) => box.setAttribute('data', JSON.stringify({ classes, details: last, ...extra, t: Date.now() }));
+  const send = (extra) => box.setAttribute('data', JSON.stringify({ classes, details: last, usage, ...extra, t: Date.now() }));
 
   const load = async (spaceId) => {
     selected = spaceId;
     try {
       last = await classDetails(spaceId);
+      usage = null;
       send({});
+      loadUsage();
     } catch (e) {
       send({ error: errText(e) });
+    }
+  };
+
+  const loadUsage = async () => {
+    const forClass = selected;
+    try {
+      const u = await usageReport(forClass, usageDays);
+      if (forClass !== selected) return;
+      usage = u;
+      send({});
+    } catch (e) {
+      usage = { ready: false, days: usageDays };
+      send({});
     }
   };
 
@@ -38,6 +55,7 @@ $w.onReady(async function () {
   box.on('delete-room', (e) => run(() => deleteRoom(selected, e.detail.roomId), 'Room deleted.'));
   box.on('room-mode', (e) => run(() => setRoomMode(selected, e.detail.roomId, e.detail.sessionsOnly),
     e.detail.sessionsOnly ? 'Room now opens only during sessions.' : 'Room is now always open.'));
+  box.on('usage-range', (e) => { usageDays = e.detail.days; usage = null; send({}); loadUsage(); });
   box.on('save-session', (e) => run(() => saveSession(selected, e.detail.session), 'Session saved.', { saved: true }));
   box.on('delete-session', (e) => run(() => deleteSession(selected, e.detail.id), 'Session deleted.'));
 });

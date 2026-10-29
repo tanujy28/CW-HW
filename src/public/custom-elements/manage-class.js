@@ -14,6 +14,7 @@ customElements.define('cwhw-manage', class extends HTMLElement {
     if (name !== 'data' || !val) return;
     let d; try { d = JSON.parse(val); } catch (e) { return; }
     if (d.details) this.details = d.details;
+    if (d.usage !== undefined) this.usage = d.usage;
     if (d.saved) this.editing = null;
     this.data = d;
     this.busy = false;
@@ -68,6 +69,26 @@ cwhw-manage .msg{min-height:22px;font-size:15px;font-weight:700;margin-bottom:14
 cwhw-manage .empty{text-align:center;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;padding:40px 24px}
 cwhw-manage .empty p{margin:8px 0 18px}
 cwhw-manage a.btn{display:inline-block;text-decoration:none}
+cwhw-manage .uhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+cwhw-manage .uhead h3{margin:0}
+cwhw-manage .uhead select{width:auto}
+cwhw-manage .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+cwhw-manage .tile{background:#fff;border:2px solid #2F3E4E;border-radius:12px;padding:12px 14px}
+cwhw-manage .tile b{display:block;font-size:24px}
+cwhw-manage .tile span{font-size:13px;color:#4a5866}
+cwhw-manage .lbl{font-size:13px;font-weight:700;letter-spacing:1px;margin:18px 0 8px;color:#4a5866}
+cwhw-manage .chart{display:flex;align-items:flex-end;gap:3px;height:140px;background:#fff;border:2px solid #2F3E4E;border-radius:12px;padding:12px 10px 0}
+cwhw-manage .col{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+cwhw-manage .bar{width:100%;max-width:38px;background:#FFC124;border:1.5px solid #2F3E4E;border-bottom:0;border-radius:5px 5px 0 0;box-sizing:border-box}
+cwhw-manage .col span{font-size:11px;color:#4a5866;height:20px;line-height:20px;white-space:nowrap}
+cwhw-manage .chip{font-size:13px;font-weight:700;padding:4px 10px;border-radius:999px;background:#e9eef2;color:#2F3E4E;white-space:nowrap}
+cwhw-manage .tablewrap{overflow-x:auto;background:#fff;border:2px solid #2F3E4E;border-radius:12px}
+cwhw-manage table{width:100%;border-collapse:collapse;font-size:15px}
+cwhw-manage th,cwhw-manage td{text-align:left;padding:9px 12px;border-bottom:1px solid #eadfd6;white-space:nowrap}
+cwhw-manage th{font-size:13px;color:#4a5866}
+cwhw-manage tr:last-child td{border-bottom:0}
+cwhw-manage tr.idle td{color:#8a96a3}
+cwhw-manage .note{font-size:13px;color:#4a5866;margin:10px 0 0}
 @media (max-width:600px){cwhw-manage .band{padding:20px 12px}cwhw-manage h2{font-size:30px}cwhw-manage .two{grid-template-columns:1fr}cwhw-manage .row{flex-wrap:wrap}}
 </style>
 <div class="band"><div class="inner">
@@ -243,7 +264,109 @@ cwhw-manage a.btn{display:inline-block;text-decoration:none}
       } else sc.append(this.el('p', 'muted', 'Create a study room first, then add sessions.'));
     }
     grid.append(sc);
+    grid.append(this.usageCard());
     body.append(grid);
+  }
+
+  usageCard() {
+    const u = this.usage;
+    const card = this.el('div', 'card wide');
+    const top = this.el('div', 'uhead');
+    top.append(this.el('h3', null, 'Usage report'));
+    const range = this.el('select');
+    range.setAttribute('aria-label', 'Report period');
+    [[7, 'Last 7 days'], [30, 'Last 30 days'], [90, 'Last 90 days']].forEach(([v, t]) => {
+      const o = this.el('option', null, t); o.value = v;
+      if (u && u.days === v) o.selected = true;
+      range.append(o);
+    });
+    range.disabled = !!this.busy;
+    range.onchange = () => { this.usage = null; this.send('usage-range', { days: Number(range.value) }); };
+    top.append(range);
+    card.append(top);
+
+    if (!u) { card.append(this.el('p', 'muted', 'Loading report…')); return card; }
+    if (!u.ready) { card.append(this.el('p', 'muted', 'Usage tracking isn’t set up yet. Please contact CWHW.')); return card; }
+
+    const hrs = m => m >= 60 ? (Math.round(m / 6) / 10) + ' hr' : m + ' min';
+    const stats = this.el('div', 'tiles');
+    const tile = (big, small) => { const t = this.el('div', 'tile'); t.append(this.el('b', null, big), this.el('span', null, small)); stats.append(t); };
+    tile(u.activeStudents + ' / ' + u.studentCount, 'students studied');
+    tile(hrs(u.totalMinutes), 'total study time');
+    tile(u.activeStudents ? hrs(Math.round(u.totalMinutes / u.activeStudents)) : '0 min', 'per active student');
+    tile(u.doubtsAnswered + ' / ' + u.doubtsAsked, 'doubts answered');
+    card.append(stats);
+
+    // Study time per day
+    card.append(this.el('div', 'lbl', 'STUDY TIME PER DAY'));
+    const max = Math.max(1, ...u.daily.map(x => x.minutes));
+    const chart = this.el('div', 'chart');
+    const step = u.daily.length > 31 ? 7 : u.daily.length > 7 ? 5 : 1;
+    u.daily.forEach((x, i) => {
+      const col = this.el('div', 'col');
+      col.title = x.label + ': ' + hrs(x.minutes);
+      const bar = this.el('div', 'bar');
+      bar.style.height = Math.max(x.minutes ? 3 : 0, Math.round(x.minutes / max * 100)) + '%';
+      col.append(bar, this.el('span', null, (i % step === 0 || i === u.daily.length - 1) ? x.label : ''));
+      chart.append(col);
+    });
+    card.append(chart);
+
+    // Sessions
+    if (u.sessions.length) {
+      card.append(this.el('div', 'lbl', 'SESSION ATTENDANCE'));
+      u.sessions.forEach(s => {
+        const row = this.el('div', 'row');
+        const info = this.el('div');
+        info.append(this.el('b', null, s.title));
+        info.append(this.el('span', null, s.held ? 'Held ' + s.held + (s.held === 1 ? ' time' : ' times') + ' · last time ' + s.last + ' of ' + u.studentCount : 'No sessions in this period yet'));
+        row.append(info, this.el('span', 'chip', s.held ? 'Avg ' + s.avg + ' students' : '—'));
+        card.append(row);
+      });
+    }
+
+    // Students
+    card.append(this.el('div', 'lbl', 'STUDENTS'));
+    if (!u.students.length) {
+      card.append(this.el('p', 'muted', 'No students have joined yet. Share your student code.'));
+      return card;
+    }
+    const when = d => {
+      if (!d) return 'Not yet';
+      const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+      return days <= 0 ? 'Today' : days === 1 ? 'Yesterday' : days + ' days ago';
+    };
+    const wrap = this.el('div', 'tablewrap');
+    const table = this.el('table');
+    const head = this.el('tr');
+    ['Student', 'Study time', 'Room visits', 'Doubts', 'Last studied'].forEach(h => head.append(this.el('th', null, h)));
+    table.append(head);
+    u.students.forEach(r => {
+      const tr = this.el('tr');
+      if (!r.visits) tr.className = 'idle';
+      [r.name, r.minutes ? hrs(r.minutes) : '—', String(r.visits), String(r.doubts), when(r.lastSeen)].forEach(v => tr.append(this.el('td', null, v)));
+      table.append(tr);
+    });
+    wrap.append(table);
+    card.append(wrap);
+
+    const dl = this.button('Download CSV', 'btn2', () => {
+      const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+      const lines = [['Student', 'Study minutes', 'Room visits', 'Doubts asked', 'Last studied', 'Joined'].map(q).join(',')];
+      u.students.forEach(r => lines.push([r.name, r.minutes, r.visits, r.doubts,
+        r.lastSeen ? new Date(r.lastSeen).toLocaleDateString() : '', r.joined ? new Date(r.joined).toLocaleDateString() : ''].map(q).join(',')));
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = ((this.details && this.details.name) || 'class').replace(/[^a-z0-9]+/gi, '-') + '-usage-' + u.days + 'd.csv';
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    });
+    dl.disabled = false;
+    dl.style.marginTop = '12px';
+    card.append(dl);
+    card.append(this.el('p', 'note', 'Study time counts minutes spent in your class rooms. It updates every 2 minutes while students are in a room.'));
+    return card;
   }
 
   sessionForm(det) {

@@ -1,6 +1,6 @@
 import { Permissions, webMethod } from 'wix-web-module';
 import wixData from 'wix-data';
-import { currentMember } from 'wix-members-backend';
+import { currentMember, members as siteMembers } from 'wix-members-backend';
 import { getSecret } from 'wix-secrets-backend';
 import { fetch } from 'wix-fetch';
 
@@ -172,4 +172,143 @@ export const deleteSession = webMethod(Permissions.SiteMember, async (spaceId, i
   if (!old || old.space !== spaceId) throw new Error('Session not found.');
   await wixData.remove('ClassSessions', old._id, opts);
   return details(spaceId);
+});
+
+// ---------- Usage report ----------
+const IST = 330 * 60000; // report days follow Indian time
+const WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+async function queryAll(q) {
+  let r = await q.limit(1000).find(opts);
+  const items = r.items.slice();
+  while (r.hasNext() && items.length < 5000) { r = await r.next(); items.push(...r.items); }
+  return items;
+}
+
+async function namesFor(ids) {
+  const out = {};
+  if (!ids.length) return out;
+  try {
+    const r = await siteMembers.queryMembers().hasSome('_id', ids).limit(1000).find({ suppressAuth: true });
+    r.items.forEach(x => {
+      const p = x.profile || {};
+      const c = x.contactDetails || {};
+      const n = p.nickname || [c.firstName, c.lastName].filter(Boolean).join(' ');
+      if (n) out[x._id] = n;
+    });
+  } catch (e) { /* fall back to names saved with visits and doubts */ }
+  return out;
+}
+
+export const usageReport = webMethod(Permissions.SiteMember, async (spaceId, days) => {
+  await requireTeacher(spaceId);
+  spaceId = String(spaceId);
+  days = [7, 30, 90].includes(Number(days)) ? Number(days) : 7;
+
+  const nowMs = Date.now();
+  // Start of the first day in the range, Indian time
+  const todayIst = Math.floor((nowMs + IST) / 86400000) * 86400000;
+  const fromIst = todayIst - (days - 1) * 86400000;
+  const since = new Date(fromIst - IST);
+
+  const mem = await queryAll(wixData.query('SpaceMembers').eq('spaceId', spaceId));
+  const students = mem.filter(x => x.role !== 'teacher');
+  const studentIds = new Set(students.map(x => x.memberId));
+
+  let visits = [];
+  let ready = true;
+  try {
+    visits = await queryAll(wixData.query('ClassVisits').hasSome('space', [spaceId]).ge('start', since));
+  } catch (e) { ready = false; }
+  visits = visits.filter(v => studentIds.has(v.memberId));
+
+  let doubts = [];
+  try {
+    doubts = await queryAll(wixData.query('ClassDoubts').hasSome('space', [spaceId]).ge('_createdDate', since));
+  } catch (e) { doubts = []; }
+
+  const names = await namesFor([...studentIds]);
+  visits.forEach(v => { if (!names[v.memberId] && v.author) names[v.memberId] = v.author; });
+  doubts.forEach(d => { if (!names[d.memberId] && d.author) names[d.memberId] = d.author; });
+
+  const mins = v => Math.max(1, Number(v.minutes) || 0);
+
+  // Study minutes per day
+  const daily = [];
+  for (let i = 0; i < days; i++) {
+    const dayStart = fromIst + i * 86400000;
+    const d = new Date(dayStart);
+    daily.push({
+      label: days <= 7 ? WEEK[d.getUTCDay()] : d.getUTCDate() + '/' + (d.getUTCMonth() + 1),
+      minutes: 0
+    });
+  }
+  visits.forEach(v => {
+    const i = Math.floor((new Date(v.start).getTime() + IST - fromIst) / 86400000);
+    if (daily[i]) daily[i].minutes += mins(v);
+  });
+
+  // Attendance at each weekly session
+  let sessions = [];
+  try {
+    sessions = await queryAll(wixData.query('ClassSessions').hasSome('space', [spaceId]));
+  } catch (e) { sessions = []; }
+  const sessionStats = sessions.map(s => {
+    const dset = String(s.days || '').split(/[^A-Za-z]+/).map(x => x.slice(0, 3)).filter(Boolean);
+    const [h, m] = String(s.startTime || '').split(':').map(Number);
+    const counts = [];
+    if (!isNaN(h)) {
+      for (let i = 0; i < days; i++) {
+        const dayStart = fromIst + i * 86400000;
+        if (!dset.includes(WEEK[new Date(dayStart).getUTCDay()])) continue;
+        const startMs = dayStart + (h * 60 + (m || 0)) * 60000 - IST;
+        const endMs = startMs + (Number(s.duration) || 60) * 60000;
+        if (startMs > nowMs) continue; // not happened yet
+        if (s._createdDate && endMs < new Date(s._createdDate).getTime()) continue; // before it was added
+        const who = new Set();
+        visits.forEach(v => {
+          if (v.room !== s.room) return;
+          const a = new Date(v.start).getTime();
+          const b = new Date(v.lastSeen || v.start).getTime() + 60000;
+          if (a < endMs && b > startMs - 12 * 60000) who.add(v.memberId);
+        });
+        counts.push(who.size);
+      }
+    }
+    return {
+      title: s.title || 'Session',
+      held: counts.length,
+      avg: counts.length ? Math.round(counts.reduce((a, b) => a + b, 0) / counts.length * 10) / 10 : 0,
+      last: counts.length ? counts[counts.length - 1] : null
+    };
+  });
+
+  // Per student
+  const rows = students.map(st => {
+    const vs = visits.filter(v => v.memberId === st.memberId);
+    const last = vs.reduce((a, v) => Math.max(a, new Date(v.lastSeen || v.start).getTime()), 0);
+    return {
+      name: names[st.memberId] || 'Student',
+      joined: st._createdDate,
+      visits: vs.length,
+      minutes: vs.reduce((a, v) => a + mins(v), 0),
+      lastSeen: last ? new Date(last) : null,
+      doubts: doubts.filter(d => d.memberId === st.memberId).length
+    };
+  }).sort((a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name));
+
+  const studentDoubts = doubts.filter(d => studentIds.has(d.memberId));
+  return {
+    ready,
+    days,
+    studentCount: students.length,
+    activeStudents: rows.filter(r => r.visits > 0).length,
+    totalMinutes: rows.reduce((a, r) => a + r.minutes, 0),
+    visits: visits.length,
+    doubtsAsked: studentDoubts.length,
+    doubtsAnswered: studentDoubts.filter(d => d.answered).length,
+    daily,
+    sessions: sessionStats,
+    students: rows
+  };
 });

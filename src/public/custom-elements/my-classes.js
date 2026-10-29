@@ -248,9 +248,28 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
     f.allow = 'camera; microphone; fullscreen; display-capture; autoplay';
     Object.assign(f.style, { position: 'relative', zIndex: '1', width: '100%', height: '100%', border: '0' });
     this.stage.append(f);
+    // Tell the server every 2 minutes that the student is still in the room
+    this.stopPing();
+    if (d.visitId) {
+      this.visitId = d.visitId;
+      this.ping = setInterval(() => this.sendPing(), 120000);
+      this.onHide = () => { if (document.visibilityState === 'hidden') this.sendPing(); };
+      document.addEventListener('visibilitychange', this.onHide);
+    }
+  }
+
+  sendPing() {
+    if (this.visitId) this.dispatchEvent(new CustomEvent('ping', { detail: { visitId: this.visitId } }));
+  }
+
+  stopPing() {
+    if (this.ping) { this.sendPing(); clearInterval(this.ping); this.ping = null; }
+    if (this.onHide) { document.removeEventListener('visibilitychange', this.onHide); this.onHide = null; }
+    this.visitId = null;
   }
 
   closeRoom(silent) {
+    this.stopPing();
     if (this.overlay) { this.overlay.remove(); this.overlay = null; }
     document.body.style.overflow = '';
     if (!silent && this.data) this.renderList();
@@ -258,6 +277,7 @@ cwhw-classes .empty p{margin:0 0 18px;font-size:16px}
 
   disconnectedCallback() {
     clearInterval(this.tick);
+    this.stopPing();
     if (this.overlay) { this.overlay.remove(); this.overlay = null; }
     document.body.style.overflow = '';
     window.removeEventListener('resize', this.fit);

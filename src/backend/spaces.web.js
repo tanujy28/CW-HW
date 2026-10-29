@@ -120,5 +120,33 @@ export const getClassRoom = webMethod(Permissions.SiteMember, async (roomId) => 
     } catch (e) {}
     if (!anyLive(sessions)) throw new Error('closed');
   }
-  return room.roomUrl + '?audio=off&video=off&logo=off';
+  // Log the visit for the class usage report
+  let visitId = null;
+  try {
+    const full = await currentMember.getMember({ fieldsets: ['FULL'] });
+    const p = (full && full.profile) || {};
+    const c = (full && full.contactDetails) || {};
+    const now = new Date();
+    const v = await wixData.insert('ClassVisits', {
+      title: room.title || 'Room',
+      space: room.space, room: room._id, memberId: m._id,
+      author: String(p.nickname || [c.firstName, c.lastName].filter(Boolean).join(' ') || 'Student').slice(0, 40),
+      teacher: ok.items[0].role === 'teacher',
+      start: now, lastSeen: now, minutes: 0
+    }, opts);
+    visitId = v._id;
+  } catch (e) { /* ClassVisits not set up yet */ }
+  return { url: room.roomUrl + '?audio=off&video=off&logo=off', visitId };
+});
+
+// Keep a room visit's length up to date while the student is in the room
+export const pingVisit = webMethod(Permissions.SiteMember, async (visitId) => {
+  const m = await currentMember.getMember();
+  if (!m || !visitId) return false;
+  const v = await wixData.get('ClassVisits', String(visitId), opts).catch(() => null);
+  if (!v || v.memberId !== m._id) return false;
+  const now = new Date();
+  const minutes = Math.min(300, Math.round((now - new Date(v.start)) / 60000));
+  await wixData.update('ClassVisits', { ...v, lastSeen: now, minutes }, opts);
+  return true;
 });

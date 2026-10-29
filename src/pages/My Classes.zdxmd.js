@@ -1,4 +1,4 @@
-import { mySpaces, myRooms, mySessions, getClassRoom } from 'backend/spaces.web';
+import { mySpaces, myRooms, mySessions, getClassRoom, pingVisit } from 'backend/spaces.web';
 
 $w.onReady(async function () {
   const box = $w('#classesBox');
@@ -19,11 +19,14 @@ $w.onReady(async function () {
 
   box.on('open-room', async (e) => {
     try {
-      const url = await getClassRoom(e.detail.id);
-      box.setAttribute('room', JSON.stringify({ url, t: Date.now() }));
+      const res = await getClassRoom(e.detail.id);
+      const url = typeof res === 'string' ? res : res.url;
+      box.setAttribute('room', JSON.stringify({ url, visitId: res && res.visitId, t: Date.now() }));
     } catch (err) {
       const closed = String(err && err.message).includes('closed');
       box.setAttribute('room', JSON.stringify({ error: closed ? 'This room opens only during its study sessions.' : 'You can’t open this room.', t: Date.now() }));
     }
   });
+
+  box.on('ping', (e) => { pingVisit(e.detail.visitId).catch(() => {}); });
 });
