@@ -4,8 +4,8 @@ import { triggeredEmails } from 'wix-crm-backend';
 // Triggered Email IDs from Dashboard → Developer Tools → Triggered Emails.
 // Leave blank to switch that email off. Both templates get these variables:
 // name, talkTitle, speaker, when, link
-export const CONFIRM_EMAIL_ID = '';
-export const REMINDER_EMAIL_ID = '';
+export const CONFIRM_EMAIL_ID = 'VZSyaUn';
+export const REMINDER_EMAIL_ID = 'VZSxy49';
 export const TALKS_PAGE_URL = 'https://www.cwhw.in/sessions';
 
 const opts = { suppressAuth: true };
