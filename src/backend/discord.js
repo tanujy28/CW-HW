@@ -13,7 +13,7 @@ export const ROOM_CHANNELS = {
   math: '1565443842264531084',
   science: '1565443913433481286',
   technology: '1565443951580807198',
-  languages: '', // TODO: Languages voice channel ID
+  languages: '1565443985638428743',
   social: '1565444028395425923',
   creative: '1565444063870591066'
 };
