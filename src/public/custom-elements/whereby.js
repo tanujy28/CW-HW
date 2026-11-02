@@ -135,11 +135,11 @@ cwhw-rooms .err{color:#b3261e;font-weight:700}
     const ph = phase(focusMin);
     const st = this.el('div', 'status ' + (ph.focus ? 'focus' : 'break'));
     st.append(this.el('span', 'dot'), this.el('span', null, ph.focus
-      ? 'Focus block · mics off · ' + ph.left + ' min left'
-      : 'Break · mics on · ' + ph.left + ' min left'));
+      ? 'Focus block · ' + ph.left + ' min left'
+      : 'Break · ' + ph.left + ' min left'));
     card.append(st);
-    card.append(this.el('p', null, 'Rooms are on Discord. Every hour there is a ' + focusMin + '-minute focus block with mics off, then a '
-      + (60 - focusMin) + '-minute break where you can talk. Text chat stays open.'));
+    card.append(this.el('p', null, 'Rooms are on Discord and always silent, so everyone can focus. Camera or screen share is optional. Every hour there is a '
+      + focusMin + '-minute focus block, then a ' + (60 - focusMin) + '-minute break. Chat in #break-chat and ask questions in #doubts.'));
 
     if (this.failed) {
       card.append(this.el('p', 'err', this.failed === 'expired' ? 'That sign-in link expired. Please click Join with Discord again.'

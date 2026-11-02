@@ -25,7 +25,7 @@ const API = 'https://discord.com/api/v10';
 const opts = { suppressAuth: true };
 const STATE_TTL_MS = 2 * 3600000;
 
-// Focus blocks follow Indian time: mics off :00–:50, break :50–:00
+// Focus blocks follow Indian time: focus :00–:50, break :50–:00 (rooms stay silent; breaks move to text chat)
 export const FOCUS_MIN = 50;
 const IST_MIN = 330;
 
@@ -49,23 +49,80 @@ async function bot(path, init = {}) {
   return res;
 }
 
-// Allow or deny Speak for CWHW Members. Channels get the same overwrite as the
-// category so they stay "synced" in Discord's settings.
-export async function setMics(on) {
-  const body = JSON.stringify({
-    type: 0,
-    allow: String(BASE_ALLOW + (on ? P.SPEAK : 0)),
-    deny: String(THREADS + (on ? 0 : P.SPEAK))
-  });
+// Study rooms are always silent: members can join, use camera and screen share, but not speak.
+// Channels get the same overwrite as the category so they stay "synced" in Discord's settings.
+const P_HISTORY = 1 << 16;
+async function keepSilent() {
+  const body = JSON.stringify({ type: 0, allow: String(BASE_ALLOW), deny: String(THREADS + P.SPEAK) });
   const ids = [CATEGORY_ID, ...Object.values(ROOM_CHANNELS).filter(Boolean)];
   for (const id of ids) {
     await bot('/channels/' + id + '/permissions/' + MEMBER_ROLE_ID, { method: 'PUT', body });
   }
 }
 
-// Scheduled in jobs.config
-export async function startFocusBlock() { await setMics(false); }
-export async function startBreak() { await setMics(true); }
+// Text channels (and a mentor Stage) members use instead of talking in the rooms.
+// Created once if missing; only CWHW Members can see them.
+const EXTRA = [
+  { name: 'study-timer', type: 0, topic: 'Focus block and break announcements. Read only.', readOnly: true },
+  { name: 'break-chat', type: 0, topic: 'Chat during breaks. Be kind, no links, no personal info.', slow: 5 },
+  { name: 'doubts', type: 0, topic: 'Ask study doubts here. One doubt per message, reply to help others.', slow: 10 },
+  { name: 'Mentor Stage', type: 13, topic: 'Live doubt sessions and talks. Only the mentor speaks; raise your hand to ask.' }
+];
+
+async function ensureChannels() {
+  const list = await (await bot('/guilds/' + GUILD_ID + '/channels')).json();
+  const byName = {};
+  list.forEach(c => { byName[String(c.name).toLowerCase() + ':' + c.type] = c; });
+  const out = {};
+  for (const ch of EXTRA) {
+    const found = byName[ch.name.toLowerCase() + ':' + ch.type];
+    if (found) { out[ch.name] = found.id; continue; }
+    const member = ch.readOnly
+      ? { allow: P.VIEW + P_HISTORY, deny: P.SEND + THREADS }
+      : ch.type === 13 ? { allow: P.VIEW + P.CONNECT, deny: P.SPEAK } : { allow: P.VIEW + P.SEND + P_HISTORY, deny: THREADS };
+    const body = {
+      name: ch.name, type: ch.type, parent_id: CATEGORY_ID, topic: ch.topic,
+      rate_limit_per_user: ch.slow || 0,
+      permission_overwrites: [
+        { id: GUILD_ID, type: 0, allow: '0', deny: String(P.VIEW) },
+        { id: MEMBER_ROLE_ID, type: 0, allow: String(member.allow), deny: String(member.deny) },
+        { id: CLIENT_ID, type: 1, allow: String(P.VIEW + P.SEND + P_HISTORY), deny: '0' }
+      ]
+    };
+    try {
+      const made = await (await bot('/guilds/' + GUILD_ID + '/channels', { method: 'POST', body: JSON.stringify(body) })).json();
+      out[ch.name] = made.id;
+    } catch (e) {
+      // Stage channels need Community turned on in the server
+      console.error('Could not create channel ' + ch.name, e.message);
+    }
+  }
+  return out;
+}
+
+function istClock(addMin) {
+  const d = new Date(Date.now() + (IST_MIN + addMin) * 60000);
+  let h = d.getUTCHours(); const m = String(d.getUTCMinutes()).padStart(2, '0');
+  const ap = h >= 12 ? 'pm' : 'am'; h = h % 12 || 12;
+  return h + ':' + m + ' ' + ap;
+}
+
+async function announce(text) {
+  const ids = await ensureChannels();
+  if (!ids['study-timer']) return;
+  await bot('/channels/' + ids['study-timer'] + '/messages', {
+    method: 'POST', body: JSON.stringify({ content: text, allowed_mentions: { parse: [] } })
+  });
+}
+
+// Scheduled in jobs.config (times are IST)
+export async function startFocusBlock() {
+  await keepSilent();
+  await announce('🎯 **Focus block started** – ' + FOCUS_MIN + ' minutes of silent study. Camera or screen share is optional. Break at ' + istClock(FOCUS_MIN) + '.');
+}
+export async function startBreak() {
+  await announce('☕ **' + (60 - FOCUS_MIN) + '-minute break.** Chat in #break-chat, ask questions in #doubts. Next focus block at ' + istClock(60 - FOCUS_MIN) + '.');
+}
 
 // ---------- Joining the server with a CWHW account ----------
 async function sign(text) {
