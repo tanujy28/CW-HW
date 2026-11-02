@@ -127,18 +127,22 @@ export async function finishJoin(query) {
         'client_secret=' + encodeURIComponent(await getSecret('discordClientSecret'))
       ].join('&')
     });
-    if (!tokenRes.ok) return fail(st.room, 'token ' + tokenRes.status + ' ' + (await tokenRes.text()));
+    if (!tokenRes.ok) return fail(st.room, 'token ' + tokenRes.status + ' ' + (await tokenRes.text()), 'token');
     const accessToken = (await tokenRes.json()).access_token;
 
     const meRes = await fetch(API + '/users/@me', { headers: { Authorization: 'Bearer ' + accessToken } });
-    if (!meRes.ok) return fail(st.room, 'users/@me ' + meRes.status);
+    if (!meRes.ok) return fail(st.room, 'users/@me ' + meRes.status, 'profile');
     const me = await meRes.json();
 
     // Adds them with the role, or (204) they were already in the server, so just give the role
-    const add = await bot('/guilds/' + GUILD_ID + '/members/' + me.id, {
-      method: 'PUT', body: JSON.stringify({ access_token: accessToken, roles: [MEMBER_ROLE_ID] })
-    });
-    if (add.status === 204) await bot('/guilds/' + GUILD_ID + '/members/' + me.id + '/roles/' + MEMBER_ROLE_ID, { method: 'PUT' });
+    try {
+      const add = await bot('/guilds/' + GUILD_ID + '/members/' + me.id, {
+        method: 'PUT', body: JSON.stringify({ access_token: accessToken, roles: [MEMBER_ROLE_ID] })
+      });
+      if (add.status === 204) await bot('/guilds/' + GUILD_ID + '/members/' + me.id + '/roles/' + MEMBER_ROLE_ID, { method: 'PUT' });
+    } catch (e) {
+      return fail(st.room, e.message, 'bot');
+    }
 
     const old = await linkFor(st.memberId);
     if (old && old.discordId !== me.id) {
@@ -149,7 +153,7 @@ export async function finishJoin(query) {
     if (old) await wixData.update('DiscordLinks', { ...old, ...record }, opts);
     else await wixData.insert('DiscordLinks', record, opts);
   } catch (e) {
-    return fail(st.room, e.message);
+    return fail(st.room, e.message, 'save');
   }
   return roomLink(st.room);
 }
