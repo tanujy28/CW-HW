@@ -52,7 +52,7 @@ async function bot(path, init = {}) {
 // Study rooms are always silent: members can join, use camera and screen share, but not speak.
 // Channels get the same overwrite as the category so they stay "synced" in Discord's settings.
 const P_HISTORY = 1 << 16;
-async function keepSilent() {
+export async function keepSilent() {
   const body = JSON.stringify({ type: 0, allow: String(BASE_ALLOW), deny: String(THREADS + P.SPEAK) });
   const ids = [CATEGORY_ID, ...Object.values(ROOM_CHANNELS).filter(Boolean)];
   for (const id of ids) {
@@ -69,7 +69,7 @@ const EXTRA = [
   { name: 'Mentor Stage', type: 13, topic: 'Live doubt sessions and talks. Only the mentor speaks; raise your hand to ask.' }
 ];
 
-async function ensureChannels() {
+export async function ensureChannels(errors = []) {
   const list = await (await bot('/guilds/' + GUILD_ID + '/channels')).json();
   const byName = {};
   list.forEach(c => { byName[String(c.name).toLowerCase() + ':' + c.type] = c; });
@@ -95,6 +95,7 @@ async function ensureChannels() {
     } catch (e) {
       // Stage channels need Community turned on in the server
       console.error('Could not create channel ' + ch.name, e.message);
+      errors.push(ch.name + ': ' + e.message);
     }
   }
   return out;
@@ -107,7 +108,7 @@ function istClock(addMin) {
   return h + ':' + m + ' ' + ap;
 }
 
-async function announce(text) {
+export async function announce(text) {
   const ids = await ensureChannels();
   if (!ids['study-timer']) return;
   await bot('/channels/' + ids['study-timer'] + '/messages', {
