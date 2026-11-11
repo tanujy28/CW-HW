@@ -20,7 +20,7 @@ export async function get_discordSetup(request) {
   try { await keepSilent(); out.silentRooms = 'ok'; } catch (e) { out.silentRooms = 'failed'; out.errors.push('Silent rooms: ' + e.message); }
   try { out.channels = await ensureChannels(out.errors); } catch (e) { out.errors.push('Channels: ' + e.message); }
   if (!out.channels['study-timer']) { out.timerMessage = 'skipped (no #study-timer channel)'; }
-  else try { await announce('✅ Study timer is set up. Focus blocks start every hour at :00, breaks at :50.'); out.timerMessage = 'ok'; }
+  else try { await announce('✅ CWHW bot check passed.'); out.timerMessage = 'ok'; }
   catch (e) { out.timerMessage = 'failed'; out.errors.push('Timer message: ' + e.message); }
   return response({ status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: JSON.stringify(out, null, 2) });
 }
