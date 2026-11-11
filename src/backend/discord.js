@@ -116,11 +116,24 @@ export async function announce(text) {
   });
 }
 
-// Scheduled in jobs.config: every hour, keep the rooms silent and the text channels in place.
-// Timers and study stats come from LionBot, so this no longer posts announcements.
+// Backup timer: LionBot runs the room timers. If it ever stops working, set the Wix secret
+// "ownTimer" to "on" and this bot posts focus/break messages in #study-timer again.
+async function ownTimerOn() {
+  try { return String(await getSecret('ownTimer')).trim().toLowerCase() === 'on'; } catch (e) { return false; }
+}
+
+// Scheduled in jobs.config (IST :00 and :50)
 export async function startFocusBlock() {
   await keepSilent();
   await ensureChannels();
+  if (await ownTimerOn()) {
+    await announce('🎯 **Focus block started** – ' + FOCUS_MIN + ' minutes of silent study. Break at ' + istClock(FOCUS_MIN) + '.');
+  }
+}
+export async function startBreak() {
+  if (await ownTimerOn()) {
+    await announce('☕ **' + (60 - FOCUS_MIN) + '-minute break.** Chat in #break-chat, ask questions in #doubts. Next focus block at ' + istClock(60 - FOCUS_MIN) + '.');
+  }
 }
 
 // ---------- Joining the server with a CWHW account ----------
