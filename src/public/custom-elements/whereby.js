@@ -5,6 +5,8 @@ const ROOMS = {
   languages: 'Languages', social: 'Social Sciences', creative: 'Creative'
 };
 const IST = 330 * 60000;
+// Rooms with LionBot's 50/10 Pomodoro timer; the others are free study
+const TIMED = { math: true, science: true, languages: true };
 
 function phase(focusMin) {
   const min = Math.floor((Date.now() + IST) / 60000) % 60;
@@ -107,7 +109,7 @@ cwhw-rooms .err{color:#b3261e;font-weight:700}
     };
     ask();
     this.retry = setInterval(ask, 1500);
-    this.tick = setInterval(() => { if (this.info) this.renderPanel(); }, 15000);
+    
   }
 
   el(tag, cls, text) {
@@ -131,15 +133,15 @@ cwhw-rooms .err{color:#b3261e;font-weight:700}
       return;
     }
 
-    const focusMin = d.focusMin || 50;
-    const ph = phase(focusMin);
-    const st = this.el('div', 'status ' + (ph.focus ? 'focus' : 'break'));
-    st.append(this.el('span', 'dot'), this.el('span', null, ph.focus
-      ? 'Focus block · ' + ph.left + ' min left'
-      : 'Break · ' + ph.left + ' min left'));
+    const timed = !!TIMED[this.current];
+    const st = this.el('div', 'status ' + (timed ? 'focus' : 'break'));
+    st.append(this.el('span', 'dot'), this.el('span', null, timed
+      ? 'Pomodoro room · 50 min focus, 10 min break'
+      : 'Free study room · no timer'));
     card.append(st);
-    card.append(this.el('p', null, 'Rooms are on Discord and always silent, so everyone can focus. Camera or screen share is optional. Every hour there is a '
-      + focusMin + '-minute focus block, then a ' + (60 - focusMin) + '-minute break. Chat in #break-chat and ask questions in #doubts.'));
+    card.append(this.el('p', null, 'Rooms are on Discord and always silent, so everyone can focus. Camera or screen share is optional. '
+      + (timed ? 'A timer bot shows the current stage in the room name and plays a sound when focus or break starts. ' : '')
+      + 'Chat in #break-chat and ask questions in #doubts.'));
 
     if (this.failed) {
       card.append(this.el('p', 'err', this.failed === 'expired' ? 'That sign-in link expired. Please click Join with Discord again.'
