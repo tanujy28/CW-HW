@@ -1,4 +1,16 @@
-const V = id => 'https://video.wixstatic.com/video/' + id + '/1080p/mp4/file.mp4';
+// Background videos: pick a lighter version on phones and slow connections (1080p is heavy and
+// mostly hidden behind the glass panels). If a size isn't available, the player falls back.
+const NET = (typeof navigator !== 'undefined' && navigator.connection) || {};
+const SLOW = !!NET.saveData || /(^|-)(2g|3g)$/.test(NET.effectiveType || '');
+const SMALL = typeof window !== 'undefined' && Math.max(window.screen.width, window.screen.height) <= 900;
+const QUALITIES = SLOW || SMALL ? ['480p', '720p', '1080p'] : ['720p', '1080p', '480p'];
+const V = id => 'https://video.wixstatic.com/video/' + id + '/' + QUALITIES[0] + '/mp4/file.mp4';
+const nextQuality = url => {
+  const m = /\/(\d+p)\/mp4\//.exec(url || '');
+  if (!m) return null;
+  const i = QUALITIES.indexOf(m[1]);
+  return i >= 0 && i < QUALITIES.length - 1 ? url.replace('/' + m[1] + '/', '/' + QUALITIES[i + 1] + '/') : null;
+};
 const M = id => 'https://static.wixstatic.com/preview/' + id + '-128.mp3';
 
 const THEMES = [
@@ -41,6 +53,12 @@ customElements.define('cwhw-focus', class extends HTMLElement {
   connectedCallback() {
     if (this.root) return;
     this.waiting = {};
+    // Start connecting to the video server early so the background shows sooner
+    if (!document.getElementById('cwhw-preconnect-video')) {
+      const pc = document.createElement('link');
+      pc.id = 'cwhw-preconnect-video'; pc.rel = 'preconnect'; pc.href = 'https://video.wixstatic.com';
+      document.head.appendChild(pc);
+    }
     if (!document.getElementById('cwhw-font')) {
       const l = document.createElement('link');
       l.id = 'cwhw-font'; l.rel = 'stylesheet';
@@ -97,7 +115,7 @@ customElements.define('cwhw-focus', class extends HTMLElement {
  .cwhw-room .time{font-size:48px}
  .cwhw-room .toast{top:110px;bottom:auto}}
 </style>
-<div class="bg"></div><video class="bgv" muted loop playsinline autoplay></video><audio></audio>
+<div class="bg"></div><video class="bgv" muted loop playsinline autoplay preload="auto"></video><audio preload="none"></audio>
 <button class="glass pill exit" id="exit">← Exit</button>
 <div class="themes"></div>
 <div class="card glass">
@@ -161,8 +179,17 @@ customElements.define('cwhw-focus', class extends HTMLElement {
     };
     video.onerror = () => {
       const b = bgs.find(x => x.key === bgKey);
-      if (b && b.id) toast('This video is still processing. Try again in a few minutes.');
+      if (b && b.id) { toast('This video is still processing. Try again in a few minutes.'); return; }
+      // Built-in theme: try the next size if this one isn't available
+      const alt = b && nextQuality(video.getAttribute('src'));
+      if (alt) { b.url = alt; video.src = alt; video.play().catch(() => {}); }
     };
+    // Don't keep decoding the background video while the tab is hidden
+    this.onVis = () => {
+      if (video.style.display === 'none' || !video.getAttribute('src')) return;
+      if (document.hidden) video.pause(); else video.play().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', this.onVis);
 
     const renderChips = () => {
       const box = $('.themes'); box.innerHTML = '';
@@ -346,6 +373,7 @@ customElements.define('cwhw-focus', class extends HTMLElement {
 
   disconnectedCallback() {
     clearInterval(this.timer);
+    if (this.onVis) document.removeEventListener('visibilitychange', this.onVis);
     if (this.root) {
       const a = this.root.querySelector('audio'); if (a) a.pause();
       this.root.remove(); this.root = null;
