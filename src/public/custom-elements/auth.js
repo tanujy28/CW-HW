@@ -12,6 +12,7 @@ customElements.define('cwhw-auth', class extends HTMLElement {
     if (name === 'config') {
       this.cfg = d;
       if (d.mode && !this.modeSet) { this.mode = d.mode; this.modeSet = true; }
+      if (d.popup && this.band) { this.classList.add('popup'); this.band.style.width = ''; this.band.style.marginLeft = ''; }
       if (this.ready) this.render();
     }
     if (name === 'result') this.onResult(d);
@@ -68,6 +69,12 @@ cwhw-auth .ic{flex:0 0 36px;height:36px;border-radius:10px;background:#FFC124;co
 cwhw-auth .item b{display:block;font-size:16px}
 cwhw-auth .item span{font-size:15px;color:#dce4ec}
 cwhw-auth .small{font-size:13px;color:#dce4ec;margin-top:auto}
+cwhw-auth.popup{height:100%}
+cwhw-auth.popup .band{height:100%;padding:0;overflow:auto}
+cwhw-auth.popup .grid{max-width:none;height:100%;gap:0;flex-wrap:nowrap}
+cwhw-auth.popup .card{border:0;border-radius:0;box-shadow:none;flex:1 1 55%;overflow:auto}
+cwhw-auth.popup .side{border-radius:0;flex:0 0 40%}
+@media (max-width:760px){cwhw-auth.popup .side{display:none}cwhw-auth.popup .card{flex:1 1 100%}}
 @media (max-width:600px){cwhw-auth .band{padding:20px 12px}cwhw-auth h2{font-size:28px}cwhw-auth .card{padding:22px 18px}cwhw-auth .side{display:none}}
 </style>
 <div class="band"><div class="grid">
@@ -84,6 +91,7 @@ cwhw-auth .small{font-size:13px;color:#dce4ec;margin-top:auto}
     this.band = this.querySelector('.band');
     // Fill the full page width wherever Wix places the element
     this.fit = () => {
+      if (this.classList.contains('popup')) return;
       this.band.style.width = document.documentElement.clientWidth + 'px';
       this.band.style.marginLeft = '0px';
       this.band.style.marginLeft = (-this.band.getBoundingClientRect().left) + 'px';

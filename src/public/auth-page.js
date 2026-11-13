@@ -28,10 +28,12 @@ function errText(e) {
 
 // Call from the page's onReady: initAuthPage($w('#authBox'), 'login' | 'signup')
 export async function initAuthPage(box, mode) {
+  // Do nothing until the cwhw-auth element has been added to this page
+  if (!box || typeof box.setAttribute !== 'function' || typeof box.on !== 'function') return;
   const reply = (d) => box.setAttribute('result', JSON.stringify({ ...d, t: Date.now() }));
   const done = (message) => { reply({ ok: true, done: true, message }); setTimeout(() => wixLocation.to(target()), 600); };
 
-  box.setAttribute('config', JSON.stringify({ mode, google: GOOGLE, links: LINKS }));
+  box.setAttribute('config', JSON.stringify({ mode, google: GOOGLE, links: LINKS, popup: true }));
 
   // Already logged in: nothing to do here
   try {
