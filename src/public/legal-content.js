@@ -3,7 +3,7 @@
 
 export const UPDATED = '13 November 2026';
 // Where people can reach CWHW about their data or a rule problem
-export const CONTACT = 'support@cwhw.in';
+export const CONTACT = 'cwhw28@gmail.com';
 
 const H1 = (t) => `<h1 style="font-size:34px;line-height:1.2;color:#2F3E4E;margin:0 0 6px">${t}</h1>`;
 const H2 = (t) => `<h2 style="font-size:22px;line-height:1.3;color:#2F3E4E;margin:26px 0 6px">${t}</h2>`;
