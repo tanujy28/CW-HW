@@ -1,6 +1,12 @@
 // CWHW log in / sign up form, used on the /login page.
 // The page code sets the "config" attribute ({ mode, google, links }) and answers events via "result".
 const CLASSES = ['Class 9', 'Class 10', 'Class 11', 'Class 12', 'College', 'Other'];
+const ICONS = {
+  name: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  email: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  password: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+  classLevel: '<svg viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></svg>'
+};
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 customElements.define('cwhw-auth', class extends HTMLElement {
@@ -30,37 +36,50 @@ customElements.define('cwhw-auth', class extends HTMLElement {
     }
     this.style.display = 'block';
     this.innerHTML = `<style>
-cwhw-auth .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:16px 16px 28px}
-cwhw-auth .card{max-width:460px;margin:0 auto;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:8px 8px 0 #F2B8A2;padding:26px 28px 24px;box-sizing:border-box}
-cwhw-auth h2{margin:0 0 4px;font-size:32px;line-height:1.1}
-cwhw-auth .sub{margin:0 0 18px;font-size:16px;color:#4a5866}
-cwhw-auth .tabs{display:flex;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:4px;margin-bottom:18px}
-cwhw-auth .tab{flex:1;border:0;background:none;border-radius:7px;padding:9px 0;font:700 15px 'Space Grotesk',sans-serif;color:#2F3E4E;cursor:pointer}
-cwhw-auth .tab.on{background:#2F3E4E;color:#fff}
-cwhw-auth label{display:block;font-weight:700;font-size:14px;margin:0 0 6px}
-cwhw-auth .f{margin-bottom:14px}
-cwhw-auth input,cwhw-auth select{width:100%;box-sizing:border-box;padding:11px 14px;border:2px solid #1d1d1d;border-radius:8px;font:500 16px 'Space Grotesk',sans-serif;background:#fff;color:#1d1d1d}
-cwhw-auth input:focus,cwhw-auth select:focus{outline:3px solid #FFC124;outline-offset:1px}
-cwhw-auth .pw{position:relative}
-cwhw-auth .pw input{padding-right:70px}
-cwhw-auth .eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font:700 13px 'Space Grotesk',sans-serif;color:#2F3E4E;cursor:pointer;padding:6px}
-cwhw-auth .hint{font-size:13px;color:#4a5866;margin-top:5px}
-cwhw-auth .err{color:#b3261e;font-size:13px;margin-top:5px;font-weight:500}
-cwhw-auth .row{display:flex;justify-content:flex-end;margin:-4px 0 16px}
-cwhw-auth .lnk{border:0;background:none;padding:0;font:700 14px 'Space Grotesk',sans-serif;color:#2F3E4E;text-decoration:underline;cursor:pointer}
-cwhw-auth .tick{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;line-height:1.4;margin:2px 0 16px}
-cwhw-auth .tick input{width:20px;height:20px;flex:0 0 20px;margin:0;padding:0;accent-color:#2F3E4E}
-cwhw-auth .tick a{color:#2F3E4E;font-weight:700}
-cwhw-auth .btn{margin-top:4px;width:100%;border:2px solid #1d1d1d;border-radius:8px;padding:13px 22px;font:700 17px 'Space Grotesk',sans-serif;cursor:pointer;background:#FFC124;color:#1d1d1d;box-shadow:4px 4px 0 #2F3E4E}
-cwhw-auth .btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 #2F3E4E}
-cwhw-auth .btn:disabled{opacity:.6;cursor:default}
-cwhw-auth .or{display:flex;align-items:center;gap:10px;color:#4a5866;font-size:13px;margin:16px 0}
-cwhw-auth .or:before,cwhw-auth .or:after{content:'';flex:1;height:1px;background:#d9cfc6}
-cwhw-auth .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:2px solid #1d1d1d;border-radius:8px;padding:11px 18px;font:700 16px 'Space Grotesk',sans-serif;cursor:pointer;background:#fff;color:#1d1d1d}
-cwhw-auth .msg{border-radius:8px;padding:10px 12px;font-size:14px;font-weight:500;margin-bottom:14px}
-cwhw-auth .msg.bad{background:#fde8e6;color:#8c1d14;border:1.5px solid #e6a59e}
-cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1.5px solid #9fd4bb}
-@media (max-width:600px){cwhw-auth .band{padding:14px 12px 22px}cwhw-auth .card{padding:22px 18px 20px;box-shadow:5px 5px 0 #F2B8A2}cwhw-auth h2{font-size:27px}}
+cwhw-auth{display:block;height:100%}
+cwhw-auth .band{position:relative;overflow:hidden;box-sizing:border-box;height:100%;min-height:100%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:28px 16px;background:radial-gradient(circle at 12% 18%,rgba(255,193,36,.35) 0,rgba(255,193,36,0) 28%),radial-gradient(circle at 88% 82%,rgba(255,193,36,.30) 0,rgba(255,193,36,0) 30%),radial-gradient(rgba(47,62,78,.09) 1.2px,transparent 1.4px) 0 0/22px 22px,#FFFBF2}
+cwhw-auth .card{position:relative;width:100%;max-width:430px;background:#fff;border:2px solid #2F3E4E;border-radius:22px;box-shadow:7px 7px 0 #FFC124,0 24px 48px rgba(47,62,78,.12);box-sizing:border-box;overflow:hidden}
+cwhw-auth .head{background:#2F3E4E;color:#fff;padding:22px 28px 20px;position:relative}
+cwhw-auth .head:after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:#FFC124;opacity:.9}
+cwhw-auth .badge{display:inline-block;position:relative;z-index:1;background:#FFC124;color:#2F3E4E;font-weight:700;font-size:11px;letter-spacing:1.2px;padding:4px 10px;border-radius:999px;margin-bottom:10px}
+cwhw-auth h2{position:relative;z-index:1;margin:0 0 4px;font-size:26px;line-height:1.15;color:#fff}
+cwhw-auth .sub{position:relative;z-index:1;margin:0;font-size:14px;color:#C9D3DD}
+cwhw-auth .body{padding:20px 28px 22px}
+cwhw-auth .tabs{display:flex;background:#F2F4F7;border-radius:999px;padding:4px;margin-bottom:18px}
+cwhw-auth .tab{flex:1;border:0;background:none;border-radius:999px;padding:9px 0;font:700 14px 'Space Grotesk',sans-serif;color:#5B6B7B;cursor:pointer;transition:background .15s,color .15s}
+cwhw-auth .tab.on{background:#FFC124;color:#2F3E4E;box-shadow:0 2px 0 #2F3E4E}
+cwhw-auth label{display:block;font-weight:700;font-size:13px;margin:0 0 6px}
+cwhw-auth .f{margin-bottom:13px}
+cwhw-auth .ic{position:relative}
+cwhw-auth .ic svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;stroke:#8A96A3;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+cwhw-auth input,cwhw-auth select{width:100%;box-sizing:border-box;padding:11px 14px 11px 42px;border:1.5px solid #DFE3E8;border-radius:12px;font:500 15px 'Space Grotesk',sans-serif;background:#F7F8FA;color:#1d1d1d;transition:border-color .15s,box-shadow .15s,background .15s;-webkit-appearance:none;appearance:none}
+cwhw-auth select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%232F3E4E' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;cursor:pointer}
+cwhw-auth input:focus,cwhw-auth select:focus{outline:none;border-color:#2F3E4E;background-color:#fff;box-shadow:0 0 0 3px rgba(255,193,36,.5)}
+cwhw-auth .ic:focus-within svg{stroke:#2F3E4E}
+cwhw-auth .pw input{padding-right:62px}
+cwhw-auth .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font:700 12px 'Space Grotesk',sans-serif;color:#5B6B7B;cursor:pointer;padding:6px 8px}
+cwhw-auth .hint{font-size:12px;color:#5B6B7B;margin-top:5px}
+cwhw-auth .err{color:#b3261e;font-size:12px;margin-top:4px;font-weight:500}
+cwhw-auth .err:empty{display:none}
+cwhw-auth .row{display:flex;justify-content:flex-end;margin:-4px 0 14px}
+cwhw-auth .lnk{border:0;background:none;padding:0;font:700 13px 'Space Grotesk',sans-serif;color:#2F3E4E;text-decoration:underline;text-decoration-color:#FFC124;text-decoration-thickness:2px;text-underline-offset:3px;cursor:pointer}
+cwhw-auth .tick{display:flex;gap:10px;align-items:flex-start;font-size:13px;font-weight:500;line-height:1.45;margin:2px 0 14px;color:#4a5866;cursor:pointer}
+cwhw-auth .tick input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;padding:0;border-radius:4px;-webkit-appearance:auto;appearance:auto;accent-color:#2F3E4E}
+cwhw-auth .tick a{color:#2F3E4E;font-weight:700;text-decoration:underline;text-decoration-color:#FFC124;text-decoration-thickness:2px;text-underline-offset:2px}
+cwhw-auth .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:2px solid #2F3E4E;border-radius:12px;padding:12px 20px;font:700 16px 'Space Grotesk',sans-serif;cursor:pointer;background:#FFC124;color:#2F3E4E;box-shadow:0 4px 0 #2F3E4E;transition:transform .08s,box-shadow .08s}
+cwhw-auth .btn:after{content:'→';font-size:18px}
+cwhw-auth .btn:hover{transform:translateY(-1px);box-shadow:0 5px 0 #2F3E4E}
+cwhw-auth .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #2F3E4E}
+cwhw-auth .btn:disabled{opacity:.6;cursor:default;transform:none}
+cwhw-auth .btn:disabled:after{content:''}
+cwhw-auth .or{display:flex;align-items:center;gap:10px;color:#8A96A3;font-size:12px;margin:14px 0}
+cwhw-auth .or:before,cwhw-auth .or:after{content:'';flex:1;height:1px;background:#E6E9ED}
+cwhw-auth .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1.5px solid #DFE3E8;border-radius:12px;padding:11px 18px;font:700 15px 'Space Grotesk',sans-serif;cursor:pointer;background:#fff;color:#1d1d1d;transition:border-color .15s}
+cwhw-auth .gbtn:hover{border-color:#2F3E4E}
+cwhw-auth .msg{border-radius:12px;padding:10px 12px;font-size:13px;font-weight:500;margin-bottom:14px}
+cwhw-auth .msg.bad{background:#fde8e6;color:#8c1d14;border:1px solid #e6a59e}
+cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1px solid #9fd4bb}
+@media (max-width:600px){cwhw-auth .band{padding:16px 10px}cwhw-auth .head{padding:18px 18px 16px}cwhw-auth .body{padding:16px 18px 18px}cwhw-auth .card{box-shadow:5px 5px 0 #FFC124}cwhw-auth h2{font-size:23px}cwhw-auth .f{margin-bottom:11px}}
 </style>
 <div class="band"><div class="card" id="card"></div></div>`;
     this.band = this.querySelector('.band');
@@ -88,7 +107,10 @@ cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1.5px solid #9fd4bb}
     const f = this.el('div', 'f');
     const l = this.el('label', null, labelText); l.htmlFor = id;
     input.id = id;
-    f.append(l, input);
+    const box = this.el('div', 'ic');
+    box.innerHTML = ICONS[id] || '';
+    box.append(input);
+    f.append(l, box);
     if (hint) f.append(this.el('div', 'hint', hint));
     const e = this.el('div', 'err'); e.id = id + '-err'; f.append(e);
     return f;
@@ -139,15 +161,21 @@ cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1.5px solid #9fd4bb}
   }
 
   render() {
-    const card = this.querySelector('#card');
+    let card = this.querySelector('#card');
     if (!card) return;
     const cfg = this.cfg || {};
     const keepEmail = (this.querySelector('#email') || {}).value || '';
     card.innerHTML = '';
     const signup = this.mode === 'signup';
 
-    card.append(this.el('h2', null, signup ? 'Create your account' : 'Welcome back'));
-    card.append(this.el('p', 'sub', signup ? 'Join CWHW and start studying together. It’s free.' : 'Log in to continue studying with CWHW.'));
+    const head = this.el('div', 'head');
+    head.append(this.el('div', 'badge', 'CWHW'));
+    head.append(this.el('h2', null, signup ? 'Create your account' : 'Welcome back'));
+    head.append(this.el('p', 'sub', signup ? 'Join free and start studying together.' : 'Log in to continue studying with CWHW.'));
+    const outer = card;
+    outer.append(head);
+    card = this.el('div', 'body');
+    outer.append(card);
 
     const tabs = this.el('div', 'tabs');
     tabs.setAttribute('role', 'tablist');
