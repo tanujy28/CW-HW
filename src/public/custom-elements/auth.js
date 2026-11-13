@@ -96,6 +96,7 @@ cwhw-auth.popup .side{border-radius:0;flex:0 0 40%}
       this.band.style.marginLeft = '0px';
       this.band.style.marginLeft = (-this.band.getBoundingClientRect().left) + 'px';
     };
+    if (this.cfg.popup) this.classList.add('popup');
     this.fit(); setTimeout(this.fit, 500); setTimeout(this.fit, 1500);
     window.addEventListener('resize', this.fit);
     this.render();
