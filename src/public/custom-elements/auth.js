@@ -31,9 +31,9 @@ customElements.define('cwhw-auth', class extends HTMLElement {
     }
     this.style.display = 'block';
     this.innerHTML = `<style>
-cwhw-auth .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:48px 24px;min-height:100%}
+cwhw-auth .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:20px 24px 32px;min-height:100%}
 cwhw-auth .grid{max-width:1000px;margin:0 auto;display:flex;flex-wrap:wrap;gap:32px;align-items:stretch}
-cwhw-auth .card{flex:1 1 400px;min-width:0;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:8px 8px 0 #F2B8A2;padding:32px 28px;box-sizing:border-box}
+cwhw-auth .card{flex:1 1 400px;min-width:0;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:8px 8px 0 #F2B8A2;padding:28px 28px;box-sizing:border-box}
 cwhw-auth .side{flex:1 1 300px;min-width:0;background:#2F3E4E;color:#fff;border-radius:16px;padding:32px 28px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px}
 cwhw-auth h2{margin:0 0 6px;font-size:34px;line-height:1.1}
 cwhw-auth h3{margin:0;font-size:22px}
