@@ -37,7 +37,7 @@ customElements.define('cwhw-auth', class extends HTMLElement {
     this.style.display = 'block';
     this.innerHTML = `<style>
 cwhw-auth{display:block;height:100%}
-cwhw-auth .band{position:relative;overflow:hidden;box-sizing:border-box;height:100%;min-height:100%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:28px 16px;background:radial-gradient(circle at 12% 18%,rgba(255,193,36,.35) 0,rgba(255,193,36,0) 28%),radial-gradient(circle at 88% 82%,rgba(255,193,36,.30) 0,rgba(255,193,36,0) 30%),radial-gradient(rgba(47,62,78,.09) 1.2px,transparent 1.4px) 0 0/22px 22px,#FFFBF2}
+cwhw-auth .band{position:relative;overflow:hidden;box-sizing:border-box;height:100%;min-height:100%;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:28px 16px;background:#fff}
 cwhw-auth .card{position:relative;width:100%;max-width:430px;background:#fff;border:2px solid #2F3E4E;border-radius:22px;box-shadow:7px 7px 0 #FFC124,0 24px 48px rgba(47,62,78,.12);box-sizing:border-box;overflow:hidden}
 cwhw-auth .head{background:#2F3E4E;color:#fff;padding:22px 28px 20px;position:relative}
 cwhw-auth .head:after{content:'';position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:#FFC124;opacity:.9}
