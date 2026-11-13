@@ -30,39 +30,37 @@ customElements.define('cwhw-auth', class extends HTMLElement {
     }
     this.style.display = 'block';
     this.innerHTML = `<style>
-cwhw-auth .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:24px 16px 32px}
-cwhw-auth .card{max-width:420px;margin:0 auto;background:#fff;border:2px solid #2F3E4E;border-radius:18px;box-shadow:6px 6px 0 #FFC124;padding:28px 28px 24px;box-sizing:border-box}
-cwhw-auth h2{margin:0 0 4px;font-size:26px;line-height:1.15;letter-spacing:-.3px}
-cwhw-auth .sub{margin:0 0 20px;font-size:15px;color:#5B6B7B}
-cwhw-auth .tabs{display:flex;background:#F3EEE8;border-radius:12px;padding:4px;margin-bottom:20px}
-cwhw-auth .tab{flex:1;border:0;background:none;border-radius:9px;padding:9px 0;font:700 14px 'Space Grotesk',sans-serif;color:#5B6B7B;cursor:pointer}
-cwhw-auth .tab.on{background:#fff;color:#2F3E4E;box-shadow:0 1px 3px rgba(47,62,78,.18)}
-cwhw-auth label{display:block;font-weight:700;font-size:13px;margin:0 0 6px}
+cwhw-auth .band{box-sizing:border-box;font-family:'Space Grotesk',sans-serif;color:#2F3E4E;padding:16px 16px 28px}
+cwhw-auth .card{max-width:460px;margin:0 auto;background:#FDF5EF;border:3px solid #2F3E4E;border-radius:16px;box-shadow:8px 8px 0 #F2B8A2;padding:26px 28px 24px;box-sizing:border-box}
+cwhw-auth h2{margin:0 0 4px;font-size:32px;line-height:1.1}
+cwhw-auth .sub{margin:0 0 18px;font-size:16px;color:#4a5866}
+cwhw-auth .tabs{display:flex;background:#fff;border:2px solid #2F3E4E;border-radius:10px;padding:4px;margin-bottom:18px}
+cwhw-auth .tab{flex:1;border:0;background:none;border-radius:7px;padding:9px 0;font:700 15px 'Space Grotesk',sans-serif;color:#2F3E4E;cursor:pointer}
+cwhw-auth .tab.on{background:#2F3E4E;color:#fff}
+cwhw-auth label{display:block;font-weight:700;font-size:14px;margin:0 0 6px}
 cwhw-auth .f{margin-bottom:14px}
-cwhw-auth input,cwhw-auth select{width:100%;box-sizing:border-box;padding:11px 14px;border:1.5px solid #CFC8C1;border-radius:10px;font:500 15px 'Space Grotesk',sans-serif;background:#fff;color:#1d1d1d;transition:border-color .15s,box-shadow .15s}
-cwhw-auth input:focus,cwhw-auth select:focus{outline:none;border-color:#2F3E4E;box-shadow:0 0 0 3px rgba(255,193,36,.45)}
+cwhw-auth input,cwhw-auth select{width:100%;box-sizing:border-box;padding:11px 14px;border:2px solid #1d1d1d;border-radius:8px;font:500 16px 'Space Grotesk',sans-serif;background:#fff;color:#1d1d1d}
+cwhw-auth input:focus,cwhw-auth select:focus{outline:3px solid #FFC124;outline-offset:1px}
 cwhw-auth .pw{position:relative}
-cwhw-auth .pw input{padding-right:64px}
-cwhw-auth .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font:700 12px 'Space Grotesk',sans-serif;color:#5B6B7B;cursor:pointer;padding:6px 8px}
-cwhw-auth .hint{font-size:12px;color:#5B6B7B;margin-top:5px}
-cwhw-auth .err{color:#b3261e;font-size:12px;margin-top:5px;font-weight:500}
-cwhw-auth .row{display:flex;justify-content:flex-end;margin:-6px 0 16px}
-cwhw-auth .lnk{border:0;background:none;padding:0;font:700 13px 'Space Grotesk',sans-serif;color:#2F3E4E;text-decoration:underline;cursor:pointer}
-cwhw-auth .tick{display:flex;gap:10px;align-items:flex-start;font-size:13px;font-weight:500;line-height:1.45;margin:4px 0 18px;color:#4a5866}
-cwhw-auth .tick input{width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;padding:0;accent-color:#2F3E4E}
+cwhw-auth .pw input{padding-right:70px}
+cwhw-auth .eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font:700 13px 'Space Grotesk',sans-serif;color:#2F3E4E;cursor:pointer;padding:6px}
+cwhw-auth .hint{font-size:13px;color:#4a5866;margin-top:5px}
+cwhw-auth .err{color:#b3261e;font-size:13px;margin-top:5px;font-weight:500}
+cwhw-auth .row{display:flex;justify-content:flex-end;margin:-4px 0 16px}
+cwhw-auth .lnk{border:0;background:none;padding:0;font:700 14px 'Space Grotesk',sans-serif;color:#2F3E4E;text-decoration:underline;cursor:pointer}
+cwhw-auth .tick{display:flex;gap:10px;align-items:flex-start;font-size:14px;font-weight:500;line-height:1.4;margin:2px 0 16px}
+cwhw-auth .tick input{width:20px;height:20px;flex:0 0 20px;margin:0;padding:0;accent-color:#2F3E4E}
 cwhw-auth .tick a{color:#2F3E4E;font-weight:700}
-cwhw-auth .btn{margin-top:6px;width:100%;border:2px solid #2F3E4E;border-radius:10px;padding:12px 20px;font:700 16px 'Space Grotesk',sans-serif;cursor:pointer;background:#FFC124;color:#1d1d1d;box-shadow:3px 3px 0 #2F3E4E;transition:transform .08s,box-shadow .08s}
-cwhw-auth .btn:hover{background:#FFCB45}
-cwhw-auth .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #2F3E4E}
+cwhw-auth .btn{margin-top:4px;width:100%;border:2px solid #1d1d1d;border-radius:8px;padding:13px 22px;font:700 17px 'Space Grotesk',sans-serif;cursor:pointer;background:#FFC124;color:#1d1d1d;box-shadow:4px 4px 0 #2F3E4E}
+cwhw-auth .btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 #2F3E4E}
 cwhw-auth .btn:disabled{opacity:.6;cursor:default}
-cwhw-auth .or{display:flex;align-items:center;gap:10px;color:#8A96A3;font-size:12px;margin:16px 0}
-cwhw-auth .or:before,cwhw-auth .or:after{content:'';flex:1;height:1px;background:#E6E0DA}
-cwhw-auth .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:1.5px solid #CFC8C1;border-radius:10px;padding:11px 18px;font:700 15px 'Space Grotesk',sans-serif;cursor:pointer;background:#fff;color:#1d1d1d}
-cwhw-auth .gbtn:hover{border-color:#2F3E4E}
-cwhw-auth .msg{border-radius:10px;padding:10px 12px;font-size:13px;font-weight:500;margin-bottom:14px}
-cwhw-auth .msg.bad{background:#fde8e6;color:#8c1d14;border:1px solid #e6a59e}
-cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1px solid #9fd4bb}
-@media (max-width:600px){cwhw-auth .band{padding:16px 12px 24px}cwhw-auth .card{padding:22px 18px 20px;box-shadow:4px 4px 0 #FFC124}cwhw-auth h2{font-size:24px}}
+cwhw-auth .or{display:flex;align-items:center;gap:10px;color:#4a5866;font-size:13px;margin:16px 0}
+cwhw-auth .or:before,cwhw-auth .or:after{content:'';flex:1;height:1px;background:#d9cfc6}
+cwhw-auth .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;border:2px solid #1d1d1d;border-radius:8px;padding:11px 18px;font:700 16px 'Space Grotesk',sans-serif;cursor:pointer;background:#fff;color:#1d1d1d}
+cwhw-auth .msg{border-radius:8px;padding:10px 12px;font-size:14px;font-weight:500;margin-bottom:14px}
+cwhw-auth .msg.bad{background:#fde8e6;color:#8c1d14;border:1.5px solid #e6a59e}
+cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1.5px solid #9fd4bb}
+@media (max-width:600px){cwhw-auth .band{padding:14px 12px 22px}cwhw-auth .card{padding:22px 18px 20px;box-shadow:5px 5px 0 #F2B8A2}cwhw-auth h2{font-size:27px}}
 </style>
 <div class="band"><div class="card" id="card"></div></div>`;
     this.band = this.querySelector('.band');
@@ -169,14 +167,14 @@ cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1px solid #9fd4bb}
 
     if (signup) {
       const name = this.input('text', 'name', ''); name.maxLength = 40;
-      form.append(this.field('name', 'Your name', name, 'Shown to others in doubts and study rooms.'));
+      form.append(this.field('name', 'Your name', name));
     }
     const email = this.input('email', 'email', 'you@example.com'); email.maxLength = 100; email.value = keepEmail;
     form.append(this.field('email', 'Email', email));
 
     const pw = this.passwordInput(signup ? 'new-password' : 'current-password');
     pw.input.maxLength = 100;
-    form.append(this.field('password', 'Password', pw.wrap, signup ? 'At least 8 characters.' : null));
+    form.append(this.field('password', signup ? 'Password (at least 8 characters)' : 'Password', pw.wrap));
     // field() set the id on the wrapper; move it to the real input
     pw.wrap.removeAttribute('id'); pw.input.id = 'password';
     form.querySelector('label[for="password"]').htmlFor = 'password';
