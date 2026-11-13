@@ -168,7 +168,7 @@ cwhw-auth .msg.ok{background:#e3f4ec;color:#1d6b4f;border:1px solid #9fd4bb}
     form.noValidate = true;
 
     if (signup) {
-      const name = this.input('text', 'name', 'e.g. Aarav Sharma'); name.maxLength = 40;
+      const name = this.input('text', 'name', ''); name.maxLength = 40;
       form.append(this.field('name', 'Your name', name, 'Shown to others in doubts and study rooms.'));
     }
     const email = this.input('email', 'email', 'you@example.com'); email.maxLength = 100; email.value = keepEmail;
