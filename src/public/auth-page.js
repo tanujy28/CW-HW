@@ -2,9 +2,9 @@ import { authentication, currentMember } from 'wix-members-frontend';
 import wixLocation from 'wix-location';
 import { saveSignupExtras } from 'backend/members.web';
 
-// Links shown in the sign-up tick box. Change these if your pages use other URLs.
-const LINKS = { rules: '/about-us', privacy: '/privacy-policy' };
-// Show "Continue with Google" (opens Wix's own login window, which has Google)
+// Links shown in the sign-up tick box
+const LINKS = { rules: '/community-rules', privacy: '/privacy-policy' };
+// "Continue with Google" opens Wix's own login window (Wix's default form must be the site's official login)
 const GOOGLE = true;
 
 // Only send people back to a page on this site
@@ -26,14 +26,16 @@ function errText(e) {
   return { message: 'Something went wrong. Please try again.' };
 }
 
-// Call from the page's onReady: initAuthPage($w('#authBox'), 'login' | 'signup')
+// Call from the page's onReady: initAuthPage($w('#authBox'))
+// Opens on sign-up when the link has ?mode=signup, otherwise on log in
 export async function initAuthPage(box, mode) {
+  mode = mode || (wixLocation.query.mode === 'signup' ? 'signup' : 'login');
   // Do nothing until the cwhw-auth element has been added to this page
   if (!box || typeof box.setAttribute !== 'function' || typeof box.on !== 'function') return;
   const reply = (d) => box.setAttribute('result', JSON.stringify({ ...d, t: Date.now() }));
   const done = (message) => { reply({ ok: true, done: true, message }); setTimeout(() => wixLocation.to(target()), 600); };
 
-  box.setAttribute('config', JSON.stringify({ mode, google: GOOGLE, links: LINKS, popup: true }));
+  box.setAttribute('config', JSON.stringify({ mode, google: GOOGLE, links: LINKS }));
 
   // Already logged in: nothing to do here
   try {
