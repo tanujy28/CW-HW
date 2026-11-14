@@ -7,22 +7,6 @@ import wixWindow from 'wix-window';
 // On phones the Log in button sits where "+ Upload" is, so Upload shows only when logged in.
 const isPhone = wixWindow.formFactor === 'Mobile';
 
-// Members-only pages. These are set to "Everyone" in Wix so Wix's default
-// sign-up form never shows; logged-out visitors are sent to our /login page instead.
-// Server functions behind these pages still require a logged-in member.
-const MEMBERS_ONLY = ['sessions', 'manage-class', 'general-6', 'study-room', 'upload', 'join'];
-
-async function guardMembersOnly() {
-  const slug = (wixLocation.path[0] || '').toLowerCase();
-  if (!MEMBERS_ONLY.includes(slug)) return false;
-  let member = null;
-  try { member = await currentMember.getMember(); } catch (e) { member = null; }
-  if (member) return false;
-  const here = '/' + wixLocation.path.join('/');
-  wixLocation.to('/login?returnTo=' + encodeURIComponent(here));
-  return true;
-}
-
 function toggle(id, show) {
   const el = $w(id);
   if (!el || typeof el.show !== 'function') return;
@@ -37,8 +21,7 @@ async function showLoginState() {
   if (isPhone) toggle('#button3', !!member);
 }
 
-$w.onReady(async function () {
-  if (await guardMembersOnly()) return;
+$w.onReady(function () {
   const btn = $w('#loginBtn');
   if (btn && typeof btn.onClick === 'function') {
     btn.onClick(() => {
