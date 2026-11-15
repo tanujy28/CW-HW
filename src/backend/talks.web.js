@@ -48,14 +48,13 @@ async function memberName(m) {
 // Mentors of any programme, and site admins, can host talks
 async function hostInfo(m) {
   if (!m) return { canHost: false, admin: false };
-  let admin = false;
-  try {
-    const roles = await currentMember.getRoles();
-    admin = (roles || []).some(r => /admin|owner/i.test(String(r.title || r.name || r._id || '')));
-  } catch (e) { admin = false; }
-  if (admin) return { canHost: true, admin };
-  const r = await wixData.query('SpaceMembers').eq('memberId', m._id).eq('role', 'teacher').limit(1).find(opts);
-  return { canHost: r.items.length > 0, admin };
+  // Check site roles and mentor status at the same time
+  const [roles, r] = await Promise.all([
+    currentMember.getRoles().catch(() => []),
+    wixData.query('SpaceMembers').eq('memberId', m._id).eq('role', 'teacher').limit(1).find(opts)
+  ]);
+  const admin = (roles || []).some(x => /admin|owner/i.test(String(x.title || x.name || x._id || '')));
+  return { canHost: admin || r.items.length > 0, admin };
 }
 
 async function regsFor(ids) {
@@ -69,16 +68,18 @@ async function regsFor(ids) {
 // Everything the Sessions page needs. Live links are never sent here.
 async function listing(m) {
   const now = Date.now();
-  const [host, talksRes] = await Promise.all([
+  // Host check runs alongside the talks + registrations lookup
+  const [host, found] = await Promise.all([
     hostInfo(m),
     wixData.query('Talks').ge('start', new Date(now - PAST_DAYS * 86400000))
-      .ascending('start').limit(100).find(opts).catch(() => null)
+      .ascending('start').limit(100).find(opts)
+      .catch(() => null) // Talks not set up yet
+      .then(async (res) => res && ({ talks: res.items, regs: await regsFor(res.items.map(t => t._id)) }))
   ]);
-  const talks = talksRes ? talksRes.items : null;
-  if (!talks) {
+  if (!found) {
     return { ready: false, loggedIn: !!m, canHost: host.canHost, talks: [] };
   }
-  const regs = await regsFor(talks.map(t => t._id));
+  const { talks, regs } = found;
 
   const out = talks.filter(t => t.published || (m && (t.createdBy === m._id || host.admin))).map(t => {
     const mine = !!m && (t.createdBy === m._id || host.admin);
