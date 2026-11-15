@@ -137,8 +137,14 @@ export async function startBreak() {
 }
 
 // ---------- Joining the server with a CWHW account ----------
+// The secret is fetched once per backend instance instead of on every call
+let secretPromise = null;
+function clientSecret() {
+  if (!secretPromise) secretPromise = getSecret('discordClientSecret').catch((e) => { secretPromise = null; throw e; });
+  return secretPromise;
+}
 async function sign(text) {
-  return crypto.createHmac('sha256', await getSecret('discordClientSecret')).update(text).digest('hex');
+  return crypto.createHmac('sha256', await clientSecret()).update(text).digest('hex');
 }
 
 // The callback can't see who is logged in to CWHW, so the member id travels in a signed state

@@ -37,11 +37,6 @@ export async function initAuthPage(box, mode) {
 
   box.setAttribute('config', JSON.stringify({ mode, google: GOOGLE, links: LINKS }));
 
-  // Already logged in: nothing to do here
-  try {
-    if (await currentMember.getMember()) { wixLocation.to(target()); return; }
-  } catch (e) { /* not logged in */ }
-
   box.on('login', async (e) => {
     try {
       await authentication.login(e.detail.email, e.detail.password);
@@ -89,4 +84,8 @@ export async function initAuthPage(box, mode) {
   });
 
   authentication.onLogin(() => wixLocation.to(target()));
+
+  // Already logged in: nothing to do here. Checked after the buttons are wired up,
+  // so the form works straight away instead of waiting for this check.
+  currentMember.getMember().then((m) => { if (m) wixLocation.to(target()); }).catch(() => {});
 }
