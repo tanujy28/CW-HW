@@ -1,5 +1,5 @@
 import wixLocation from 'wix-location';
-import { myDoubtClasses, getBoard, askDoubt, replyDoubt, setAnswered, deleteDoubt, deleteReply } from 'backend/doubts.web';
+import { openDoubts, getBoard, askDoubt, replyDoubt, setAnswered, deleteDoubt, deleteReply } from 'backend/doubts.web';
 
 $w.onReady(async function () {
   const box = $w('#doubtsBox');
@@ -29,14 +29,6 @@ $w.onReady(async function () {
     }
   };
 
-  try { classes = await myDoubtClasses(); } catch (e) { classes = []; }
-  if (!classes.length) { send({}); return; }
-
-  // Open the class from the link (?class=...), else the first one
-  const wanted = wixLocation.query.class;
-  const start = classes.find(c => c.spaceId === wanted) || classes[0];
-  await load(start.spaceId);
-
   box.on('select-class', (e) => load(e.detail.spaceId));
   box.on('refresh', () => load(selected, true));
   box.on('ask', (e) => run(() => askDoubt(selected, { text: e.detail.text, subject: e.detail.subject }), 'Doubt posted.', { sent: 'ask' }));
@@ -44,4 +36,12 @@ $w.onReady(async function () {
   box.on('answered', (e) => run(() => setAnswered(selected, e.detail.doubtId, e.detail.value), e.detail.value ? 'Marked as answered.' : 'Marked as unanswered.'));
   box.on('delete-doubt', (e) => run(() => deleteDoubt(selected, e.detail.doubtId), 'Doubt deleted.'));
   box.on('delete-reply', (e) => run(() => deleteReply(selected, e.detail.replyId), 'Reply deleted.'));
+
+  // Classes and the board (from the link's ?class=..., else the first) arrive together
+  try {
+    const first = await openDoubts(wixLocation.query.class);
+    classes = first.classes || [];
+    if (first.board) { last = first.board; selected = first.board.spaceId; }
+  } catch (e) { classes = []; }
+  send({});
 });

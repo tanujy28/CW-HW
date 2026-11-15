@@ -17,7 +17,6 @@ export async function initSessions(box) {
     catch (e) { send({ error: errText(e) }); }
   };
 
-  await load();
   authentication.onLogin(load);
 
   box.on('login', () => authentication.promptLogin().catch(() => {}));
@@ -34,4 +33,6 @@ export async function initSessions(box) {
       box.setAttribute('link', JSON.stringify({ error: errText(err), t: Date.now() }));
     }
   });
+
+  await load();
 }

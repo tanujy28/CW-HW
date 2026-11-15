@@ -36,13 +36,16 @@ async function checkRate(memberId) {
 }
 
 async function board(user, spaceId) {
-  const role = await requireMember(user.id, spaceId);
-  const space = await wixData.get('Spaces', spaceId, opts);
+  const [role, space, d] = await Promise.all([
+    requireMember(user.id, spaceId),
+    wixData.get('Spaces', spaceId, opts),
+    wixData.query('ClassDoubts').hasSome('space', [spaceId]).descending('_createdDate').limit(60).find(opts).catch((e) => ({ failed: e }))
+  ]);
   let doubts = [];
   let replies = [];
   let ready = true;
   try {
-    const d = await wixData.query('ClassDoubts').hasSome('space', [spaceId]).descending('_createdDate').limit(60).find(opts);
+    if (d.failed) throw d.failed;
     doubts = d.items;
     if (doubts.length) {
       const r = await wixData.query('ClassReplies').hasSome('doubt', doubts.map(x => x._id)).ascending('_createdDate').limit(1000).find(opts);
@@ -172,4 +175,14 @@ export const deleteReply = webMethod(Permissions.SiteMember, async (spaceId, rep
   if (r.memberId !== user.id && role !== 'teacher') throw new Error('Only the person who wrote it or the mentor can delete this.');
   await wixData.remove('ClassReplies', r._id, opts);
   return board(user, spaceId);
+});
+
+// Opening the page: the member's classes plus the first board, in one trip
+export const openDoubts = webMethod(Permissions.SiteMember, async (wanted) => {
+  const user = await me();
+  const r = await wixData.query('SpaceMembers').eq('memberId', user.id).find(opts);
+  const classes = r.items.map(x => ({ spaceId: x.spaceId, name: x.spaceName }));
+  if (!classes.length) return { classes, board: null };
+  const start = classes.find(c => c.spaceId === wanted) || classes[0];
+  return { classes, board: await board(user, String(start.spaceId)) };
 });

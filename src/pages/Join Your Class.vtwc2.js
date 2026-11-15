@@ -4,11 +4,6 @@ $w.onReady(async function () {
   const box = $w('#joinBox');
   const send = (data) => box.setAttribute('result', JSON.stringify({ ...data, t: Date.now() }));
 
-  try {
-    const spaces = await mySpaces();
-    send({ classes: spaces.map(s => s.spaceName) });
-  } catch (e) {}
-
   box.on('join', async (e) => {
     try {
       const res = await joinSpace(e.detail.code);
@@ -18,4 +13,6 @@ $w.onReady(async function () {
       send({ ok: false, message: 'Something went wrong. Please try again.' });
     }
   });
+
+  mySpaces().then((spaces) => send({ classes: spaces.map(s => s.spaceName) })).catch(() => {});
 });

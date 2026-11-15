@@ -1,4 +1,4 @@
-import { myTeaching, classDetails, saveSession, deleteSession, usageReport } from 'backend/teach.web';
+import { openManage, classDetails, saveSession, deleteSession, usageReport } from 'backend/teach.web';
 
 $w.onReady(async function () {
   const box = $w('#manageBox');
@@ -46,12 +46,17 @@ $w.onReady(async function () {
     }
   };
 
-  try { classes = await myTeaching(); } catch (e) { classes = []; }
-  if (!classes.length) { send({}); return; }
-  await load(classes[0].spaceId);
-
   box.on('select-class', (e) => load(e.detail.spaceId));
   box.on('usage-range', (e) => { usageDays = e.detail.days; usage = null; send({}); loadUsage(); });
   box.on('save-session', (e) => run(() => saveSession(selected, e.detail.session), 'Session saved.', { saved: true }).then(loadUsage));
   box.on('delete-session', (e) => run(() => deleteSession(selected, e.detail.id), 'Session deleted.'));
+
+  // Programmes and the first one's details arrive together
+  try {
+    const first = await openManage();
+    classes = first.classes || [];
+    if (classes.length) { selected = classes[0].spaceId; last = first.details; }
+  } catch (e) { classes = []; }
+  send({});
+  if (selected) loadUsage();
 });

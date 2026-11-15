@@ -6,13 +6,6 @@ $w.onReady(async function () {
   const send = (items, extra = {}) =>
     room.setAttribute('items', JSON.stringify({ loggedIn: true, items, t: Date.now(), ...extra }));
 
-  const member = await currentMember.getMember();
-  if (!member) {
-    room.setAttribute('items', JSON.stringify({ loggedIn: false, items: [] }));
-    return;
-  }
-  try { send(await myItems()); } catch (e) { send([], { error: 'Could not load your files.' }); }
-
   room.on('need-upload-url', async (e) => {
     const { reqId, mimeType, fileName } = e.detail;
     try {
@@ -33,4 +26,13 @@ $w.onReady(async function () {
     try { send(await deleteItem(e.detail.id)); }
     catch (err) { send(await myItems(), { error: 'Could not remove that file.' }); }
   });
+
+  // Check login and load files at the same time
+  const [member, items] = await Promise.all([
+    currentMember.getMember().catch(() => null),
+    myItems().catch(() => null)
+  ]);
+  if (!member) room.setAttribute('items', JSON.stringify({ loggedIn: false, items: [] }));
+  else if (items) send(items);
+  else send([], { error: 'Could not load your files.' });
 });

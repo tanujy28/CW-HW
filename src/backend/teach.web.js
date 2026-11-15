@@ -44,9 +44,11 @@ async function safeQuery(collection, field, value) {
 }
 
 async function details(spaceId) {
-  const space = await wixData.get('Spaces', spaceId, opts);
-  const members = await wixData.query('SpaceMembers').eq('spaceId', spaceId).limit(1000).find(opts);
-  const sessions = await safeQuery('ClassSessions', 'space', spaceId);
+  const [space, members, sessions] = await Promise.all([
+    wixData.get('Spaces', spaceId, opts),
+    wixData.query('SpaceMembers').eq('spaceId', spaceId).limit(1000).find(opts),
+    safeQuery('ClassSessions', 'space', spaceId)
+  ]);
   return {
     spaceId,
     name: space ? space.title : '',
@@ -152,32 +154,29 @@ export const usageReport = webMethod(Permissions.SiteMember, async (spaceId, day
   const fromIst = todayIst - (days - 1) * 86400000;
   const since = new Date(fromIst - IST);
 
-  const mem = await queryAll(wixData.query('SpaceMembers').eq('spaceId', spaceId));
+  // Fetch everything at once instead of one after another
+  const [mem, visitsRes, doubtsRes, sessionsRes] = await Promise.all([
+    queryAll(wixData.query('SpaceMembers').eq('spaceId', spaceId)),
+    queryAll(wixData.query('ClassVisits').hasSome('space', [spaceId]).ge('start', since)).catch(() => null),
+    queryAll(wixData.query('ClassDoubts').hasSome('space', [spaceId]).ge('_createdDate', since)).catch(() => []),
+    queryAll(wixData.query('ClassSessions').hasSome('space', [spaceId])).catch(() => [])
+  ]);
   const students = mem.filter(x => x.role !== 'teacher');
   const studentIds = new Set(students.map(x => x.memberId));
 
   // Each "Join" click on a session is saved in ClassVisits with the session id
-  let visits = [];
-  let ready = true;
-  try {
-    visits = await queryAll(wixData.query('ClassVisits').hasSome('space', [spaceId]).ge('start', since));
-  } catch (e) { ready = false; }
+  let visits = visitsRes || [];
+  const ready = visitsRes !== null;
   visits = visits.filter(v => v.session && studentIds.has(v.memberId));
 
-  let doubts = [];
-  try {
-    doubts = await queryAll(wixData.query('ClassDoubts').hasSome('space', [spaceId]).ge('_createdDate', since));
-  } catch (e) { doubts = []; }
+  const doubts = doubtsRes;
 
   const names = await namesFor([...studentIds]);
   visits.forEach(v => { if (!names[v.memberId] && v.author) names[v.memberId] = v.author; });
   doubts.forEach(d => { if (!names[d.memberId] && d.author) names[d.memberId] = d.author; });
 
   // Attendance at each session, counted per time it was held
-  let sessions = [];
-  try {
-    sessions = await queryAll(wixData.query('ClassSessions').hasSome('space', [spaceId]));
-  } catch (e) { sessions = []; }
+  const sessions = sessionsRes;
   const attendedBy = {}; // memberId -> number of session meetings attended
   let held = 0;
   let attendanceSum = 0;
@@ -238,4 +237,14 @@ export const usageReport = webMethod(Permissions.SiteMember, async (spaceId, day
     sessions: sessionStats,
     students: rows
   };
+});
+
+// Opening the page: the mentor's programmes plus the first one's details, in one trip
+export const openManage = webMethod(Permissions.SiteMember, async () => {
+  const m = await currentMember.getMember();
+  if (!m) return { classes: [], details: null };
+  const r = await wixData.query('SpaceMembers').eq('memberId', m._id).eq('role', 'teacher').find(opts);
+  const classes = r.items.map(x => ({ spaceId: x.spaceId, name: x.spaceName }));
+  if (!classes.length) return { classes, details: null };
+  return { classes, details: await details(String(classes[0].spaceId)) };
 });

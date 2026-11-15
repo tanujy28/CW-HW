@@ -69,12 +69,13 @@ async function regsFor(ids) {
 // Everything the Sessions page needs. Live links are never sent here.
 async function listing(m) {
   const now = Date.now();
-  const host = await hostInfo(m);
-  let talks;
-  try {
-    talks = (await wixData.query('Talks').ge('start', new Date(now - PAST_DAYS * 86400000))
-      .ascending('start').limit(100).find(opts)).items;
-  } catch (e) {
+  const [host, talksRes] = await Promise.all([
+    hostInfo(m),
+    wixData.query('Talks').ge('start', new Date(now - PAST_DAYS * 86400000))
+      .ascending('start').limit(100).find(opts).catch(() => null)
+  ]);
+  const talks = talksRes ? talksRes.items : null;
+  if (!talks) {
     return { ready: false, loggedIn: !!m, canHost: host.canHost, talks: [] };
   }
   const regs = await regsFor(talks.map(t => t._id));
