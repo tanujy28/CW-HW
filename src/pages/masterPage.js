@@ -1,6 +1,8 @@
 import { authentication, currentMember } from 'wix-members-frontend';
 import wixLocation from 'wix-location';
 import wixWindow from 'wix-window';
+import { session } from 'wix-storage-frontend';
+import { getProfileStatus } from 'backend/members.web';
 
 // Header: logged-out visitors see our "Log in" button (goes to /login),
 // logged-in members see the Wix account bar (notifications + profile menu).
@@ -19,6 +21,20 @@ async function showLoginState() {
   toggle('#loginBtn', !member);
   toggle('#accountNavBar1', !!member);
   if (isPhone) toggle('#button3', !!member);
+  if (member) askForMissingDetails();
+}
+
+// Members who joined through Wix's own form or Google never gave their name and class.
+// Ask once per visit with the "Complete Profile" pop-up until they fill it in.
+async function askForMissingDetails() {
+  if (wixLocation.path[0] === 'login') return;
+  try {
+    if (session.getItem('cwhwProfileAsked')) return;
+    const status = await getProfileStatus();
+    if (status.complete) return;
+    session.setItem('cwhwProfileAsked', '1');
+    await wixWindow.openLightbox('Complete Profile', status);
+  } catch (e) { /* never block the page over this */ }
 }
 
 $w.onReady(function () {
