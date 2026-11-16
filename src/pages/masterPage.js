@@ -37,6 +37,12 @@ async function askForMissingDetails() {
   } catch (e) { /* never block the page over this */ }
 }
 
+// Pages keep a copy of what they last showed (Sessions, Programmes) so repeat visits are instant.
+// A different person logging in or out on this tab must never see that copy.
+function clearSavedPages() {
+  try { ['cwhwCacheTalks', 'cwhwCacheProgrammes'].forEach((k) => session.removeItem(k)); } catch (e) { /* ignore */ }
+}
+
 $w.onReady(function () {
   const btn = $w('#loginBtn');
   if (btn && typeof btn.onClick === 'function') {
@@ -47,6 +53,6 @@ $w.onReady(function () {
     });
   }
   showLoginState();
-  authentication.onLogin(() => showLoginState());
-  authentication.onLogout(() => showLoginState());
+  authentication.onLogin(() => { clearSavedPages(); showLoginState(); });
+  authentication.onLogout(() => { clearSavedPages(); showLoginState(); });
 });

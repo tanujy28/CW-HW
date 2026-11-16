@@ -1,5 +1,9 @@
 import { listTalks, registerTalk, cancelRegistration, watchTalk, saveTalk, deleteTalk } from 'backend/talks.web';
 import { authentication } from 'wix-members-frontend';
+import { session } from 'wix-storage-frontend';
+
+// Last-seen talks for this tab, shown instantly on the next visit (cleared on login/logout in masterPage.js)
+const CACHE = 'cwhwCacheTalks';
 
 // Page code for the Sessions page. Call it from the page's onReady with the cwhw-talks element.
 export async function initSessions(box) {
@@ -8,7 +12,11 @@ export async function initSessions(box) {
   const send = (extra) => box.setAttribute('data', JSON.stringify({ ...(last || {}), ...extra, t: Date.now() }));
 
   const load = async () => {
-    try { last = await listTalks(); send({}); }
+    try {
+      last = await listTalks();
+      send({});
+      try { session.setItem(CACHE, JSON.stringify(last)); } catch (x) { /* storage full or blocked */ }
+    }
     catch (e) { send({ talks: [], error: 'Could not load talks. Please refresh.' }); }
   };
 
@@ -18,6 +26,11 @@ export async function initSessions(box) {
   };
 
   authentication.onLogin(load);
+
+  try {
+    const saved = session.getItem(CACHE);
+    if (saved) { last = JSON.parse(saved); send({}); }
+  } catch (e) { /* no saved copy */ }
 
   box.on('login', () => authentication.promptLogin().catch(() => {}));
   box.on('register-talk', (e) => run(() => registerTalk(e.detail.id), "You're registered! We'll email you a reminder."));
