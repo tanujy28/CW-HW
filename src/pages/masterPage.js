@@ -4,10 +4,11 @@ import wixWindow from 'wix-window';
 import { session } from 'wix-storage-frontend';
 import { getProfileStatus } from 'backend/members.web';
 
-// Header: logged-out visitors see our "Log in" button (goes to /login),
+// Header: logged-out visitors see our "Join Us" button (goes to /login),
 // logged-in members see the Wix account bar (notifications + profile menu).
-// On phones the Log in button sits where "+ Upload" is, so Upload shows only when logged in.
+// Phones have no account bar, so there the same button stays and becomes "My Account".
 const isPhone = wixWindow.formFactor === 'Mobile';
+let profileUrl = null; // set on phones while logged in
 
 function toggle(id, show) {
   const el = $w(id);
@@ -18,9 +19,18 @@ function toggle(id, show) {
 async function showLoginState() {
   let member = null;
   try { member = await currentMember.getMember(); } catch (e) { member = null; }
-  toggle('#loginBtn', !member);
   toggle('#accountNavBar1', !!member);
-  if (isPhone) toggle('#button3', !!member);
+  if (isPhone) {
+    const btn = $w('#loginBtn');
+    if (btn && typeof btn.show === 'function') {
+      const slug = member && member.profile && member.profile.slug;
+      profileUrl = member ? (slug ? '/profile/' + slug + '/profile' : '/account/my-account') : null;
+      btn.label = member ? 'My Account' : 'Join Us';
+      btn.show();
+    }
+  } else {
+    toggle('#loginBtn', !member);
+  }
   if (member) askForMissingDetails();
 }
 
@@ -47,6 +57,7 @@ $w.onReady(function () {
   const btn = $w('#loginBtn');
   if (btn && typeof btn.onClick === 'function') {
     btn.onClick(() => {
+      if (profileUrl) { wixLocation.to(profileUrl); return; }
       const here = '/' + wixLocation.path.join('/');
       const back = here === '/login' ? '/' : here;
       wixLocation.to('/login?returnTo=' + encodeURIComponent(back));
