@@ -1,10 +1,13 @@
-<p align="center"><img src="https://static.wixstatic.com/media/73c6a3_3f2c7739106c4ebc87a46c2f65c0c16c~mv2.png" alt="CWHW.in logo" width="160"></p>
+<p align="center">
+  <img src="https://static.wixstatic.com/media/73c6a3_67805277e5d141288146e6a3d901bd86~mv2.jpg" alt="CWHW.in logo" width="130">
+</p>
 
-# CWHW.in (Classwork Homework)
+<h1 align="center">CWHW.in (Classwork Homework)</h1>
 
-CWHW.in is an online collaborative learning platform for Indian school students, built by Tanuj Yadav. It has 250+ registered student users.
-
-Live site: https://cwhw.in
+<p align="center">
+  An online collaborative learning platform for Indian school students, with 250+ registered users.<br>
+  Built by Tanuj Yadav · <a href="https://cwhw.in">cwhw.in</a>
+</p>
 
 ## Features
 
