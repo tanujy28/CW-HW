@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://static.wixstatic.com/media/73c6a3_67805277e5d141288146e6a3d901bd86~mv2.jpg" alt="CWHW.in logo" width="130">
+  <img src="https://images.weserv.nl/?url=static.wixstatic.com/media/73c6a3_3f2c7739106c4ebc87a46c2f65c0c16c~mv2.png&w=600&h=600&bg=white&output=png" alt="CWHW.in logo" width="180">
 </p>
 
 <h1 align="center">CWHW.in (Classwork Homework)</h1>
