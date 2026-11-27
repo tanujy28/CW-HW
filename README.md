@@ -1,3 +1,5 @@
+<p align="center"><img src="https://static.wixstatic.com/media/73c6a3_3f2c7739106c4ebc87a46c2f65c0c16c~mv2.png" alt="CWHW.in logo" width="160"></p>
+
 # CWHW.in (Classwork Homework)
 
 CWHW.in is an online collaborative learning platform for Indian school students, built by Tanuj Yadav. It has 250+ registered student users.
